@@ -12,7 +12,6 @@ using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Models.Eft.Common.Tables;
 using SPTarkov.Server.Core.Models.Spt.Tables;
 using SPTarkov.Server.Core.Models.Spt.Mod;
-using SPTarkov.Server.Core.Models.Spt.Tables;
 using SPTarkov.Server.Core.Services.Modding.Custom;
 
 namespace TsdTechnologies.Server;
@@ -31,7 +30,7 @@ public record ModMetadata : IModMetadata
     public List<string>? Contributors { get; init; }
 
     public SemanticVersioning.Version Version { get; init; } =
-        new("1.0.0");
+        new("1.1.0");
 
     public SemanticVersioning.Range SptVersion { get; init; } =
         new("4.1.6");

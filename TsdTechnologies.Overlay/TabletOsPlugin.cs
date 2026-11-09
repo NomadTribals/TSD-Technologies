@@ -1,7 +1,7 @@
 using System;using System.Collections.Generic;using System.IO;using System.Linq;using System.Reflection;using BepInEx;using BepInEx.Bootstrap;using BepInEx.Configuration;using TsdTechnologies.Api;using UnityEngine;using WebOverlay;
 namespace TsdTechnologies.Overlay
 {
- [BepInPlugin("com.nomadtribals.tsdtechnologies.overlay","TSD Technologies - Field OS","1.0.0")]
+ [BepInPlugin("com.nomadtribals.tsdtechnologies.overlay","TSD Technologies - Field OS","1.1.0")]
  [BepInDependency(TabletRuntime.PluginGuid)]
  [BepInDependency("com.anvil.weboverlay","1.12.0")]
  public sealed class TabletOsPlugin:BaseUnityPlugin
@@ -12,14 +12,15 @@ namespace TsdTechnologies.Overlay
   private readonly Dictionary<string,AppHost> hosts=new Dictionary<string,AppHost>();
   private void Awake(){
    settings=Chainloader.PluginInfos[TabletRuntime.PluginGuid].Instance.Config;
-   migration=new TsdUnifiedConfig(settings,Path.Combine(Paths.ConfigPath,"com.nomadtribals.tacticalsupplydrops.cfg"));
+   migration=new TsdUnifiedConfig(settings,Path.Combine(BepInEx.Paths.ConfigPath,"com.nomadtribals.tacticalsupplydrops.cfg"));
    hotkey=migration.Bind("Controls","TabletToggleKey",KeyCode.F9,"Open or close your tablet.");
    color=migration.Bind("Appearance","InterfaceColor","#e0a43b","Interface accent color (#RRGGBB).");
    sounds=migration.Bind("Tablet Audio","SoundsEnabled",true,"Enable device sounds.");volume=migration.Bind("Tablet Audio","Volume",.5f,"Device sound volume, 0 to 1.");brightness=migration.Bind("Appearance","Brightness",.55f,"Screen brightness, 0.55 to 1.25.");
    MigrateFiles("Wallpapers");
-   appDocumentsFolder=Path.Combine(Paths.ConfigPath,"TsdTechnologies","AppDocuments");Directory.CreateDirectory(appDocumentsFolder);
+   appDocumentsFolder=Path.Combine(BepInEx.Paths.ConfigPath,"TsdTechnologies","AppDocuments");Directory.CreateDirectory(appDocumentsFolder);
    wallpapers=new TsdWallpapers(migration.Bind("Appearance","Wallpaper","builtin:signal","Home wallpaper."),migration.Bind("Appearance","WallpaperFit","fill","Custom image sizing: fill or fit."),json=>overlay?.Post("tsd-wallpapers",json,PostOptions.Retain));
    color.SettingChanged+=(sender,args)=>{if(ValidColor(color.Value)){overlay?.ExecuteScript("window.tsd.onInterfaceColorLoaded("+Quote(color.Value)+");");foreach(var host in hosts.Values)host.SendTheme(color.Value);}};
+   gameObject.AddComponent<Animation.TabletAnimationController>().Initialize(this,settings,Logger);
    Logger.LogInfo("TSD Technologies Field OS ready. Installed apps register independently.");
   }
   private void Update(){
@@ -79,7 +80,7 @@ namespace TsdTechnologies.Overlay
   }
   private static string AppDocument(string document){string bridge="<meta charset='utf-8'><script>"+Resource("AppBridge.js")+"</script>";int head=document.IndexOf("<head",StringComparison.OrdinalIgnoreCase);int end=head>=0?document.IndexOf('>',head):-1;return end>=0?document.Insert(end+1,bridge):bridge+document;}
   private static string Resource(string name){using(var stream=typeof(TabletOsPlugin).Assembly.GetManifestResourceStream("TsdTechnologies.Overlay."+name))using(var reader=new StreamReader(stream))return reader.ReadToEnd();}
-  private void MigrateFiles(string name){try{string old=Path.Combine(Paths.ConfigPath,"TacticalSupplyDrops",name),target=Path.Combine(Paths.ConfigPath,"TsdTechnologies",name);Directory.CreateDirectory(target);string marker=Path.Combine(target,".legacy-migration-complete");if(File.Exists(marker))return;if(Directory.Exists(old))foreach(var file in Directory.EnumerateFiles(old)){string path=Path.Combine(target,Path.GetFileName(file));if(!File.Exists(path))File.Copy(file,path);}File.WriteAllText(marker,"Device files migrated.");}catch(Exception ex){Logger.LogWarning("Could not migrate device files: "+ex.Message);}}
+  private void MigrateFiles(string name){try{string old=Path.Combine(BepInEx.Paths.ConfigPath,"TacticalSupplyDrops",name),target=Path.Combine(BepInEx.Paths.ConfigPath,"TsdTechnologies",name);Directory.CreateDirectory(target);string marker=Path.Combine(target,".legacy-migration-complete");if(File.Exists(marker))return;if(Directory.Exists(old))foreach(var file in Directory.EnumerateFiles(old)){string path=Path.Combine(target,Path.GetFileName(file));if(!File.Exists(path))File.Copy(file,path);}File.WriteAllText(marker,"Device files migrated.");}catch(Exception ex){Logger.LogWarning("Could not migrate device files: "+ex.Message);}}
   private void OnDestroy(){foreach(var host in hosts.Values)host.NotifyVisibility(false);overlay?.Dispose();overlay=null;hosts.Clear();}
   private sealed class AppHost:ITabletAppHost{
    private readonly TabletOsPlugin owner;private readonly TabletApplication app;private bool ready,shown;private readonly Queue<Action> pending=new Queue<Action>();
@@ -95,13 +96,13 @@ namespace TsdTechnologies.Overlay
    internal void SendTheme(string value){SendDeviceKey();ExecuteScript("window.tabletApp.setTheme && window.tabletApp.setTheme("+Quote(ValidColor(value)?value:"#e0a43b")+");");}
   }
   [Serializable]private class ScriptValue{public string value;}
-  [Serializable]private class AppMessage{public string id,channel,payload;}
-  [Serializable]private class AppVisibility{public string id;public bool visible;}
+  [Serializable]private class AppMessage{public string id=null,channel=null,payload=null;}
+  [Serializable]private class AppVisibility{public string id=null;public bool visible=false;}
   [Serializable]private class ScriptMessage{public string id,script;}
   [Serializable]private class Manifest{public List<AppInfo> apps;}
   [Serializable]private class AppInfo{public string id,name,iconSvg,url,logPage;public string[] channels;}
   [Serializable]private class ContextMessage{public bool hasAccess,inRaid;public string nickname,raidTime;}
   [Serializable]private class DevicePreferences{public bool sounds;public float volume,brightness;}
-  [Serializable]private class Preference{public string key,value;}
+  [Serializable]private class Preference{public string key=null,value=null;}
  }
 }

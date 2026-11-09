@@ -1,8 +1,9 @@
-# TSD Technologies 1.0.0
+# TSD Technologies 1.1.0
 
-![TSD Technologies](images/TSD_Technologies_Home.png)
+![Tablet animation](images/TSD-Tablet-Preview.gif)
 
-[Download 1.0.0](https://github.com/NomadTribals/TSD-Technologies/releases/tag/v1.0.0) · [Clean installation](docs/Clean-install.md)
+[Download 1.1.0](https://github.com/NomadTribals/TSD-Technologies/releases/tag/v1.1.0) | [Upgrade guide](docs/Upgrade-TsdTechnologies.md)
+
 
 **Your tools. One terminal.**
 
@@ -12,6 +13,8 @@ Purchase the TSD Field Terminal from Mechanic at Loyalty Level 1 for a base pric
 
 ## Features
 
+- Physical rectangular tablet with slim corner plates, native raise/put-away animation, handling sounds and working indicators.
+- Corrected dropped-terminal collision so it can be recovered from the ground.
 - Compact app launcher with distinct icons and a permanent HOME button.
 - Personalised welcome and registered operator information.
 - Actual in-game time during raids and local computer time outside raids.
@@ -29,16 +32,22 @@ SPT 4.1.6 and Anvil WebOverlay 1.12.0 or newer. Install compatible apps separate
 
 ## Installation
 
-Use the accompanying clean-install guide when replacing any older TSD installation. Extract into the SPT game root. A fresh setup uses F9; the tablet must be carried to access it in raid.
+Use the accompanying upgrade guide. Close the game and server, remove the old Technologies plugin and server-mod folders, then extract this ZIP. Keep your configuration and wallpapers. Logistics is unchanged and stays installed. Extract into the SPT game root. A fresh setup uses F9; the tablet must be carried to access it in raid.
+
+## Current animation behaviour
+
+Use your configured tablet key (F9 on a fresh installation). Stop sprinting and leave aiming or other hands interactions before opening it. The interactive overlay stops movement while open. The overlay remains a separate movable window. You can resize and position it over the held tablet screen; it does not track the physical tablet's movement. Animation can be disabled in the unified F12 configuration.
 
 ## Future development
 
 Maps and App Browser currently open Coming Soon pages. Map content and integration are being discussed with other authors. Forge app discovery will be connected after the Technologies listing is available.
 
-Further exploration includes additional community apps, more device personalisation and a handheld tablet animation. Hacking and drones are ideas under consideration, not included features or release promises.
+Further exploration includes additional community apps and more device personalisation. Hacking is an idea under consideration, not an included feature or release promise.
+
+A future goal is to integrate the live interface directly into the physical tablet screen, following its movement. Feasibility and performance still need investigation; no release date is promised.
 
 ## Special thanks
 
-TSD Technologies is built on **Anvil WebOverlay** by **Anvil (maschine34675)**. Thank you for the framework, your direct support, and the improvements made with this project in mind. This tablet would not have been possible without that foundation.
+TSD Technologies is built on **Anvil WebOverlay** by **maschine**. Thank you for the framework, your direct support, and the improvements made with this project in mind. This tablet would not have been possible without that foundation.
 
 https://github.com/maschine34675/WebOverlay

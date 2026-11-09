@@ -119,6 +119,6 @@ namespace TsdTechnologies.Overlay
         }
         [Serializable] internal sealed class Entry { public string id, name, style, url, thumbnail; }
         [Serializable] internal sealed class Catalog { public List<Entry> items; public string selected, mode, folder, message; }
-        [Serializable] private sealed class Selection { public string id, mode; }
+        [Serializable] private sealed class Selection { public string id=null, mode=null; }
     }
 }
