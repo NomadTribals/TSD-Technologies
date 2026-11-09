@@ -1,0 +1,62 @@
+
+# Visual Studio / IDE
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build output
+**/bin/
+**/obj/
+[Bb]uild/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+
+# Compiled binaries
+*.dll
+*.exe
+*.pdb
+*.mdb
+*.cache
+
+# Test output
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*.old
+*.orig
+*~
+*_BACKUP.cs
+*_BACKUP_FINAL.cs
+
+# Archives and packages
+*.zip
+*.7z
+*.rar
+*.nupkg
+
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local snapshots and Unity-generated files
+*_PRE_*.cs
+**/Library/
+**/Temp/
+**/Logs/
+**/UserSettings/
+**/MemoryCaptures/
+**/Recordings/

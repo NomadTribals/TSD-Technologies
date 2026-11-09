@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="TsdTechnologies.Api/TsdTechnologies.Api.csproj" />
+  <Project Path="TsdTechnologies.Client/TsdTechnologies.Client.csproj" />
+  <Project Path="TsdTechnologies.Overlay/TsdTechnologies.Overlay.csproj" />
+  <Project Path="TsdTechnologies.Server/TsdTechnologies.Server.csproj" />
+</Solution>

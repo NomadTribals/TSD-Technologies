@@ -1,0 +1,1 @@
+<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>netstandard2.0</TargetFramework><Nullable>disable</Nullable><ProjectGuid>{C9DA6FC0-331C-4B6A-AB42-C2BE8F219944}</ProjectGuid><Version>1.0.0</Version><Description>TSD Technologies Field OS app registration API.</Description></PropertyGroup></Project>
