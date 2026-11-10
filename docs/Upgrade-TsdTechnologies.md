@@ -1,4 +1,4 @@
-# Installing TSD Technologies 1.1.0
+# Installing TSD Technologies 1.2.0
 
 Requires SPT 4.1.6 and Anvil WebOverlay 1.12.0 or newer.
 
@@ -10,5 +10,3 @@ Requires SPT 4.1.6 and Anvil WebOverlay 1.12.0 or newer.
 6. Start the server and game. Carry the terminal in raid. Use your existing tablet key; fresh installations default to F9.
 
 No user profile or configuration files are included in this package. The private F7 preview shortcut is retired. Tablet animation and handling sound controls are in the main Technologies F12 settings.
-
-Before publishing: test opening/closing, cancellation, drop/pickup, death/extraction, menu access, and a Logistics purchase/delivery using this exact package.

@@ -1,9 +1,4 @@
-# TSD Technologies 1.1.0
-
-![Tablet animation](images/TSD-Tablet-Preview.gif)
-
-[Download 1.1.0](https://github.com/NomadTribals/TSD-Technologies/releases/tag/v1.1.0) | [Upgrade guide](docs/Upgrade-TsdTechnologies.md)
-
+# TSD Technologies 1.2.0
 
 **Your tools. One terminal.**
 
@@ -12,6 +7,9 @@ TSD has expanded beyond logistics. Its technology division introduces **TSD Tech
 Purchase the TSD Field Terminal from Mechanic at Loyalty Level 1 for a base price of 75,000 roubles. Open your personal workspace, adjust the device to your preferences, and run compatible apps inside the same rugged tablet.
 
 ## Features
+
+- TSD Access for nearby keycard readers with configurable scan range and bypass duration.
+- App Browser with compatible app details and Forge links.
 
 - Physical rectangular tablet with slim corner plates, native raise/put-away animation, handling sounds and working indicators.
 - Corrected dropped-terminal collision so it can be recovered from the ground.
@@ -40,9 +38,7 @@ Use your configured tablet key (F9 on a fresh installation). Stop sprinting and 
 
 ## Future development
 
-Maps and App Browser currently open Coming Soon pages. Map content and integration are being discussed with other authors. Forge app discovery will be connected after the Technologies listing is available.
-
-Further exploration includes additional community apps and more device personalisation. Hacking is an idea under consideration, not an included feature or release promise.
+Maps currently displays a Coming Soon page.
 
 A future goal is to integrate the live interface directly into the physical tablet screen, following its movement. Feasibility and performance still need investigation; no release date is promised.
 

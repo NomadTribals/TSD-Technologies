@@ -8,7 +8,7 @@ using TsdTechnologies.Api;
 using UnityEngine;
 namespace TsdTechnologies.Client
 {
-    [BepInPlugin(TabletRuntime.PluginGuid, "TSD Technologies", "1.1.0")]
+    [BepInPlugin(TabletRuntime.PluginGuid, "TSD Technologies", "1.2.0")]
     public sealed class TechnologiesPlugin : BaseUnityPlugin
     {
         private float timer;
@@ -23,7 +23,7 @@ namespace TsdTechnologies.Client
             {
                 var world = Singleton<GameWorld>.Instantiated ? Singleton<GameWorld>.Instance as ClientGameWorld : null;
                 var player = world?.MainPlayer;
-                state.InRaid = player != null && player.IsYourPlayer;
+                state.InRaid = player != null && player.IsYourPlayer && !(world is HideoutGameWorld);
                 var session = Singleton<ClientApplication<IEftSession>>.Instantiated ? Singleton<ClientApplication<IEftSession>>.Instance.GetClientBackEndSession() : null;
                 state.Nickname = state.InRaid && player != null ? player.Profile?.Info?.Nickname : session?.Profile?.Info?.Nickname;
                 if(state.InRaid && player != null)

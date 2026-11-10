@@ -17,7 +17,6 @@ using UnityEngine;
 
 namespace TsdTechnologies.Overlay.Animation
 {
-    public enum TabletHoldStyle { LeftHand, Rangefinder }
     public sealed class TabletAnimationController : MonoBehaviour
     {
         public const string Guid = "com.nomadtribals.tsdtechnologies.animation";
@@ -25,7 +24,6 @@ namespace TsdTechnologies.Overlay.Animation
         internal ConfigEntry<Vector3> Position, Rotation;
         internal ConfigEntry<float> Scale;
         private ConfigEntry<bool> animationEnabled, tabletVisual;
-        private ConfigEntry<TabletHoldStyle> holdStyle;
         private ConfigEntry<float> minimumDraw, settleTime, darkPause;
         private ConfigEntry<bool> handlingSounds;
         private ConfigEntry<float> handlingVolume;
@@ -59,13 +57,12 @@ namespace TsdTechnologies.Overlay.Animation
             Config=settings;Logger=logger;
             Instance = this;
             animationEnabled = Config.Bind("Tablet Animation", "Enabled", true, "Raise the physical tablet before opening Field OS. Disable for interface-only access.");
-            holdStyle = Config.Bind("Tablet Animation Advanced", "HoldStyle", TabletHoldStyle.LeftHand, "Native left-hand pose. Rangefinder is an alternative compatibility pose. Applies on the next draw.");
             minimumDraw = Config.Bind("Animation timing", "MinimumDrawSeconds", .9f, new ConfigDescription("Minimum left-hand raise time before Field OS can open.",new AcceptableValueRange<float>(.3f,2f)));
             settleTime = Config.Bind("Animation timing", "SettledSeconds", .18f, new ConfigDescription("How long the hand must be settled after the raise before opening Field OS.",new AcceptableValueRange<float>(.05f,.5f)));
             darkPause = Config.Bind("Animation timing", "DarkScreenPauseSeconds", .18f, new ConfigDescription("Keep the dark physical tablet raised briefly after the interface finishes shutting down, then lower it.",new AcceptableValueRange<float>(0f,.6f)));
             handlingSounds = Config.Bind("Animation audio", "GearRustleEnabled", true, "Use the character's native gear rustle when raising and putting away the tablet.");
             handlingVolume = Config.Bind("Animation audio", "GearRustleVolume", 1f, new ConfigDescription("Native equipment handling sound volume. Separate from electronic tablet sounds.",new AcceptableValueRange<float>(0f,1f)));
-            tabletVisual = Config.Bind("Pose fitting", "ShowTabletModel", true, "Replace the rangefinder geometry with the existing tablet model. Turn off to compare the native pose.");
+            tabletVisual = Config.Bind("Pose fitting", "ShowTabletModel", true, "Show the physical TSD tablet during the left-hand animation.");
             Position = Config.Bind("Pose fitting", "TabletPosition", new Vector3(0f, 0f, 0f), "Local position relative to the native device model. Applies while holding.");
             Rotation = Config.Bind("Pose fitting", "TabletRotation", new Vector3(0f, 0f, 0f), "Local rotation in degrees. Applies while holding.");
             Scale = Config.Bind("Pose fitting", "TabletScale", .8f, new ConfigDescription("Model scale multiplier. Applies while holding.", new AcceptableValueRange<float>(0.1f, 3f)));
@@ -115,6 +112,10 @@ namespace TsdTechnologies.Overlay.Animation
             if(self.pending) { self.cancelled = true; return false; }
             var p = LocalPlayer();
             if(p == null) return true; // Menu access remains unchanged.
+            // Hideout hands do not always include the full profile inventory.
+            // Let normal Field OS access use profile ownership when no device can be raised.
+            if(Singleton<GameWorld>.Instance is HideoutGameWorld
+                && (p.Inventory?.AllRealPlayerItems?.Any(i=>i.StringTemplateId==TabletRuntime.TerminalTemplateId)!=true || !p.StateIsSuitableForHandInput || p.HandsController==null))return true;
             if(self.leftSession) { self.preview = false; return true; }
             if(self.active != null && p.HandsController == self.active) { self.preview = false; return true; }
             self.Begin(p, false);
@@ -228,49 +229,7 @@ namespace TsdTechnologies.Overlay.Animation
 
         private async void Begin(Player p, bool posePreview)
         {
-            if(holdStyle.Value == TabletHoldStyle.LeftHand) { await BeginLeft(p, posePreview); return; }
-            if(pending || active != null || !p.StateIsSuitableForHandInput || p.IsSprintEnabled || p.InventoryController.IsChangingWeapon
-                || p.HandsController == null || !p.HandsController.CanRemove() || p.HandsController.IsInInteractionStrictCheck())
-            { Logger.LogInfo("Wait until your hands are idle before raising the tablet."); return; }
-            var terminal = p.Inventory?.AllRealPlayerItems?.FirstOrDefault(i => i.StringTemplateId == TabletRuntime.TerminalTemplateId);
-            if(terminal == null) { Logger.LogInfo("Carry the TSD Field Terminal to use it."); return; }
-            player = p; priorItem = p.HandsController.Item; preview = posePreview; pending = true; cancelled = false;
-            deadline = Time.unscaledTime + 15f;
-            try
-            {
-                // Visual-only donor: never inserted into a player's inventory or persisted.
-                var donor = Singleton<ItemFactory>.Instance.CreateItem(MongoID.Generate(), "61605e13ffa6e502ac5e7eef", null);
-                var resources = donor.Template.AllResources.Concat(terminal.Template.AllResources).Distinct().ToArray();
-                await Singleton<ObjectsFactory>.Instance.LoadBundlesAndCreatePools(ObjectsFactory.PoolsCategory.Raid, ObjectsFactory.AssemblyType.Online, resources, JobYieldPriority.Low);
-                if(cancelled || LocalPlayer() != p || Time.unscaledTime >= deadline) { ClearSession(); return; }
-                if(p.HandsController.Item != priorItem || !p.HandsController.CanRemove()) { ClearSession(); return; }
-                Func<TabletHandsController> factory = () =>
-                {
-                    active = TabletHandsController.Build(p, terminal, donor, tabletVisual.Value);
-                    return active;
-                };
-                new Player.Process<TabletHandsController, IUsableItemController>(p, factory, terminal, fastHide: false)
-                    .Proceed(null, result =>
-                    {
-                        pending = false;
-                        if(result.Failed) { Logger.LogWarning("Tablet draw failed: " + result.Error); Restore(); return; }
-                        if(cancelled || LocalPlayer() != p) { Restore(); return; }
-                        Logger.LogInfo("Tablet draw finished; holding device.");
-                        if(!preview)
-                        {
-                            bypass = true;
-                            try { toggle.Invoke(os, null); awaitingWindow = true; deadline = Time.unscaledTime + 4f; }
-                            finally { bypass = false; }
-                        }
-                    }, true);
-            }
-            catch(Exception ex)
-            {
-                Logger.LogError("Animation creation failed: " + ex);
-                pending = false;
-                if(active != null && player != null && player.HandsController == active) Restore();
-                else ClearSession();
-            }
+            await BeginLeft(p, posePreview);
         }
 
         private async Task BeginLeft(Player p, bool posePreview)

@@ -1,0 +1,18 @@
+{
+  "apps": [
+    {
+      "forgeId": 3301,
+      "appId": "tsd.logistics",
+      "guid": "com.nomadtribals.tacticalsupplydrops",
+      "name": "TSD Logistics",
+      "author": "NomadTribals",
+      "summary": "Prepare stash cargo, purchase trader supplies and coordinate delivery into your raid.",
+      "description": "TSD Logistics is the supply service app for Field OS. Prepare cargo from your stash, browse vanilla and custom traders, and dispatch supplies through aircraft or courier delivery.\n\nInstall TSD Technologies separately. Do not combine the app edition with standalone Logistics 2.1.0.",
+      "thumbnail": "",
+      "version": "3.0.0",
+      "spt": "4.1.6",
+      "requirements": "TSD Technologies 1.x; Anvil WebOverlay 1.12.0 or newer.",
+      "detailUrl": "https://sp-mod.com/mod/3301/tactical-supply-drops"
+    }
+  ]
+}
