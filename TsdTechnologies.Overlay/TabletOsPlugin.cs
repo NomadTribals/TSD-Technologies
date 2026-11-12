@@ -1,7 +1,7 @@
 using System;using System.Collections.Generic;using System.IO;using System.Linq;using System.Reflection;using BepInEx;using BepInEx.Bootstrap;using BepInEx.Configuration;using TsdTechnologies.Api;using UnityEngine;using WebOverlay;
 namespace TsdTechnologies.Overlay
 {
- [BepInPlugin("com.nomadtribals.tsdtechnologies.overlay","TSD Technologies - Field OS","1.2.0")]
+ [BepInPlugin("com.nomadtribals.tsdtechnologies.overlay","TSD Technologies - Field OS","1.2.1")]
  [BepInDependency(TabletRuntime.PluginGuid)]
  [BepInDependency("com.anvil.weboverlay","1.12.0")]
  public sealed class TabletOsPlugin:BaseUnityPlugin
@@ -11,6 +11,8 @@ namespace TsdTechnologies.Overlay
   private bool visible,capturing;private float suppressUntil,timer;private long lastContextTicks;private long appRevision=-1;
   private TsdAccess access;
   private TsdAppBrowser appBrowser;private readonly System.Collections.Concurrent.ConcurrentQueue<string> browserMessages=new System.Collections.Concurrent.ConcurrentQueue<string>();
+  private EFT.ClientGameWorld bootWorld;private string raidBootToken;private bool raidBootCompleted;
+  private readonly string menuBootToken="menu-"+Guid.NewGuid().ToString("N");private bool menuBootCompleted;
   private readonly Dictionary<string,AppHost> hosts=new Dictionary<string,AppHost>();
   private void Awake(){
    settings=Chainloader.PluginInfos[TabletRuntime.PluginGuid].Instance.Config;
@@ -51,6 +53,7 @@ namespace TsdTechnologies.Overlay
   }
   private void HandleChannel(string channel,string payload){
    Logger.LogDebug("Field OS channel: "+channel);
+   if(channel=="tsd-boot-complete"){if(!string.IsNullOrEmpty(payload)&&payload==GetRaidBootToken()){if(payload==menuBootToken)menuBootCompleted=true;else raidBootCompleted=true;}return;}
    if(channel=="tsd-ready"){appRevision=-1;RefreshApps();wallpapers.Refresh();SendPreferences();SendContext();overlay.ExecuteScript("window.tsd.onInterfaceColorLoaded("+Quote(ValidColor(color.Value)?color.Value:"#e0a43b")+");window.tsd.onTabletHotkeyLoaded("+Quote(hotkey.Value.ToString())+");window.tsd.setTabletVisible(true);");return;}
    if(channel=="tsd-access-visible"){access.SetVisible(visible&&payload=="true");return;}
    if(channel=="tsd-access-scan"){if(visible)access.Scan();return;}
@@ -77,7 +80,14 @@ namespace TsdTechnologies.Overlay
    foreach(var app in apps){if(!hosts.ContainsKey(app.Id)){var host=new AppHost(this,app);hosts.Add(app.Id,host);try{app.Attach(host);}catch(Exception ex){Logger.LogError("Could not attach app "+app.Id+": "+ex.Message);hosts.Remove(app.Id);continue;}}manifest.apps.Add(new AppInfo{id=app.Id,name=app.Name,iconSvg=app.IconSvg,url=WriteAppDocument(app.Id,app.Document),channels=app.Channels,logPage=app.LogPage});}
    overlay.Post("tech-apps",JsonUtility.ToJson(manifest),PostOptions.Retain);
   }
-  private void SendContext(){var state=TabletRuntime.Context;overlay?.ExecuteScript("window.tsd.onTabletAccessReceived("+JsonUtility.ToJson(new ContextMessage{hasAccess=state.IsFresh&&state.HasTablet,inRaid=state.InRaid,nickname=state.Nickname,raidTime=state.RaidTime})+");");}
+  private string GetRaidBootToken(){
+   var world=Comfort.Common.Singleton<EFT.GameWorld>.Instantiated?Comfort.Common.Singleton<EFT.GameWorld>.Instance as EFT.ClientGameWorld:null;
+   if(world==null||world.GetType().Name=="HideoutGameWorld"||world.MainPlayer?.IsYourPlayer!=true)world=null;
+   if(!ReferenceEquals(world,bootWorld)){bootWorld=world;raidBootToken=world==null?null:Guid.NewGuid().ToString("N");raidBootCompleted=false;}
+   if(world!=null&&string.IsNullOrEmpty(raidBootToken)){raidBootToken=Guid.NewGuid().ToString("N");raidBootCompleted=false;}
+   return world==null?menuBootToken:raidBootToken;
+  }
+  private void SendContext(){var state=TabletRuntime.Context;string token=GetRaidBootToken();overlay?.ExecuteScript("window.tsd.onTabletAccessReceived("+JsonUtility.ToJson(new ContextMessage{hasAccess=state.IsFresh&&state.HasTablet,inRaid=state.InRaid,nickname=state.Nickname,raidTime=state.RaidTime,raidBootToken=token,raidBootCompleted=token==menuBootToken?menuBootCompleted:raidBootCompleted})+");");}
   private void SendPreferences(){overlay?.Post("tsd-preferences",JsonUtility.ToJson(new DevicePreferences{sounds=sounds.Value,volume=Finite(volume.Value,.5f,0,1),brightness=Finite(brightness.Value,.55f,.55f,1.25f)}),PostOptions.Retain);}
   private void SavePreference(string payload){try{if(payload==null||payload.Length>4096)return;var m=JsonUtility.FromJson<Preference>(payload);if(m==null)return;float value;switch(m.key){case "tsd-tablet-sounds":if(m.value=="true"||m.value=="false")sounds.Value=m.value=="true";break;case "tsd-tablet-volume":if(float.TryParse(m.value,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out value))volume.Value=Finite(value,.5f,0,1);break;case "tsd-tablet-brightness":if(float.TryParse(m.value,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out value))brightness.Value=Finite(value,.55f,.55f,1.25f);break;}}catch(Exception ex){Logger.LogWarning("Device preference could not be saved: "+ex.Message);}}
   private static float Finite(float value,float fallback,float min,float max){return float.IsNaN(value)||float.IsInfinity(value)?fallback:Mathf.Clamp(value,min,max);}
@@ -113,7 +123,7 @@ namespace TsdTechnologies.Overlay
   [Serializable]private class ScriptMessage{public string id,script;}
   [Serializable]private class Manifest{public List<AppInfo> apps;}
   [Serializable]private class AppInfo{public string id,name,iconSvg,url,logPage;public string[] channels;}
-  [Serializable]private class ContextMessage{public bool hasAccess,inRaid;public string nickname,raidTime;}
+  [Serializable]private class ContextMessage{public bool hasAccess,inRaid,raidBootCompleted;public string nickname,raidTime,raidBootToken;}
   [Serializable]private class DevicePreferences{public bool sounds;public float volume,brightness;}
   [Serializable]private class Preference{public string key=null,value=null;}
  }

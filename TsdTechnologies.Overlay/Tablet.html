@@ -2432,6 +2432,8 @@
     const tabletRoot = document.querySelector('.app');
     const tabletPowerStatus = document.querySelector('.tablet-power-status');
     let tabletSequenceTimers = [];
+    let tabletRaidBootToken = '';
+    let completedRaidBootToken = '';
 
     function getTabletAudioContext() {
         if (!tabletAudioContext) {
@@ -2628,7 +2630,14 @@
         if (!tabletRoot) return;
         clearTabletSequenceTimers();
         tabletVisible = true;
+        const startingRaid = tabletRaidBootToken;
         tabletRoot.classList.remove('tablet-shutting-down', 'tablet-booting', 'tablet-welcoming');
+        if (startingRaid && completedRaidBootToken === startingRaid) {
+            if (tabletPowerStatus) tabletPowerStatus.textContent = 'SYSTEM READY';
+            if (tabletSoundEnabled) startTabletHum();
+            notifyExternalVisibility(currentTabletView === 'app');
+            return;
+        }
         void tabletRoot.offsetWidth;
         tabletRoot.classList.add('tablet-booting');
         if (tabletPowerStatus) tabletPowerStatus.textContent = 'STARTING FIELD OS';
@@ -2643,10 +2652,11 @@
         tabletSequenceTimers.push(setTimeout(() => {
             tabletRoot.classList.remove('tablet-booting', 'tablet-welcoming');
             if (tabletPowerStatus) tabletPowerStatus.textContent = 'SYSTEM READY';
+            if (startingRaid && startingRaid === tabletRaidBootToken) { completedRaidBootToken = startingRaid; window.overlay.send('tsd-boot-complete', startingRaid); }
             if (tabletSoundEnabled) startTabletHum();
+            notifyExternalVisibility(currentTabletView === 'app');
         }, 2470));
     }    function beginTabletShutdown() {
-        window.tsd.setAccessVisible?.(false);
         notifyExternalVisibility(false);
         if (!tabletRoot || !tabletVisible || tabletRoot.classList.contains('tablet-shutting-down')) return;
         clearTabletSequenceTimers();
@@ -3003,6 +3013,9 @@ window.overlay.on('tsd-preferences', json => {
         if (hotkeyStatus) hotkeyStatus.textContent = 'That key could not be saved. Choose another key.';
     };
 window.tsd.onTabletAccessReceived=state=>{
+ const token=state?.raidBootToken||'';
+ if(token!==tabletRaidBootToken){tabletRaidBootToken=token;completedRaidBootToken='';}
+ if(token&&state?.raidBootCompleted)completedRaidBootToken=token;
  const connected=!!state?.hasAccess;
  const signal=document.querySelector('.tablet-link-indicator');
  if(signal){signal.classList.toggle('is-connected',connected);signal.setAttribute('aria-label',connected?'Field OS link connected':'Field OS link unavailable');signal.title=connected?'Field OS connection established':'Waiting for the field terminal connection';}
