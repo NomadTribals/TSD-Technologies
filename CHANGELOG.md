@@ -1,3 +1,12 @@
+# TSD Technologies 1.3.0
+
+- Adds generic unread badges for compatible optional apps on the Home screen.
+- Adds app visibility reporting so an app can distinguish a visible chat from a remembered page while the tablet is closed or on Home.
+- Provides the tablet support required by TSD Messenger 1.0.0, available separately.
+- Existing tablet settings, wallpapers, startup/resume behaviour and Logistics compatibility are preserved.
+
+Requires SPT 4.1.6 and Anvil WebOverlay 1.12.0 or newer. TSD Logistics remains at 3.1.0 and does not require another update. Messenger is optional and is not bundled with Technologies.
+
 # TSD Technologies 1.2.1
 
 - **Boot once per raid and outside raids:** the first completed opening plays the normal startup and welcome sequence. Further openings during the same raid resume the last page without repeating the startup sequence. Menus, stash and hideout share a separate completed startup for the current game session.
@@ -57,4 +66,3 @@ Requires SPT 4.1.6 and Anvil WebOverlay 1.12.0 or newer. Fika compatibility is u
 Special thanks to Anvil (maschine34675), author of Anvil WebOverlay, for the framework, direct support and improvements that made this tablet possible.
 
 ---
-

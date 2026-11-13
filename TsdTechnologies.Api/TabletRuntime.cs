@@ -12,6 +12,7 @@ namespace TsdTechnologies.Api
         void ExecuteScript(string script);
         void Post(string channel, string payload, TabletPostOptions options = TabletPostOptions.None);
     }
+    public interface ITabletNotificationHost { bool IsAppVisible { get; } void SetBadge(int count); }
     public sealed class TabletApplication
     {
         public string Id { get; set; }

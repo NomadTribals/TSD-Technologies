@@ -1,4 +1,4 @@
-# TSD Technologies 1.2.1
+# TSD Technologies 1.3.0
 
 **Your tools. One terminal.**
 
@@ -7,6 +7,8 @@ TSD has expanded beyond logistics. Its technology division introduces **TSD Tech
 Purchase the TSD Field Terminal from Mechanic at Loyalty Level 1 for a base price of 75,000 roubles. Open your personal workspace, adjust the device to your preferences, and run compatible apps inside the same rugged tablet.
 
 ## Features
+
+- Home-screen unread badges and accurate visibility reporting for compatible optional apps such as TSD Messenger.
 
 - Normal startup once per raid and once outside raids per game session, then immediate resume of the last page on subsequent openings.
 

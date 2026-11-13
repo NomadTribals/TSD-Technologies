@@ -2147,7 +2147,7 @@
 .app[data-app='access']>.header,.app[data-app='access']>.footer{display:none!important;}
 #access-view{gap:12px;padding:14px 20px 32px;}.access-head{padding-bottom:10px;}.access-head h1{font-size:24px;margin:5px 0;}.access-setting{padding:8px 12px;}.access-target{padding:12px 14px;}.access-progress{padding:12px 14px;}.access-sequence li{padding:5px 0;}.access-actions{padding:12px 14px;}
 .access-sequence li{padding:4px 0;line-height:1.4;}.access-actions{padding:8px 14px;}
-</style><style>.access-sequence li[hidden]{display:none;}</style><style>.access-granted{margin-top:12px;padding:14px;border:1px solid #53896a;border-radius:3px;background:linear-gradient(110deg,#163426,#10271d);color:#a6edbd;text-align:center;font:700 17px/1.4 Consolas,monospace;letter-spacing:3px;box-shadow:inset 0 0 20px #61bc7a0a;}.access-granted[hidden],.access-track[hidden],.access-percent[hidden]{display:none;}</style></head>
+</style><style>.access-sequence li[hidden]{display:none;}</style><style>.access-granted{margin-top:12px;padding:14px;border:1px solid #53896a;border-radius:3px;background:linear-gradient(110deg,#163426,#10271d);color:#a6edbd;text-align:center;font:700 17px/1.4 Consolas,monospace;letter-spacing:3px;box-shadow:inset 0 0 20px #61bc7a0a;}.access-granted[hidden],.access-track[hidden],.access-percent[hidden]{display:none;}</style><style>#home-view .tablet-app-icon{position:relative;overflow:visible}#home-view .tablet-app-icon .tablet-unread-badge{position:absolute;top:-7px;right:-8px;min-width:24px;height:24px;padding:0 6px;border-radius:14px;background:#c84636;color:white;border:2px solid #151b1b;font:700 12px/20px 'Segoe UI',sans-serif;box-shadow:0 2px 6px #0008;display:block}</style></head>
 
 <body>
     <div class='app tablet-booting'>
@@ -2354,8 +2354,8 @@
                 <div class='panel-header'><span class='panel-title'>DEVICE INFORMATION</span><span class='eyebrow'>SYSTEM RECORD // TSD-FT-01</span></div>
                 <div class='tablet-about-grid'>
                     <div class='tablet-about-entry'><span>TERMINAL</span><strong>TSD FIELD TERMINAL</strong></div>
-                    <div class='tablet-about-entry'><span>FIRMWARE</span><strong>TSD FIELD OS // 1.2.0</strong></div>
-                    <div class='tablet-about-entry'><span>TABLET VERSION</span><strong>1.2.0</strong></div>
+                    <div class='tablet-about-entry'><span>FIRMWARE</span><strong>TSD FIELD OS // 1.3.0</strong></div>
+                    <div class='tablet-about-entry'><span>TABLET VERSION</span><strong>1.3.0</strong></div>
                     <div class='tablet-about-entry'><span>DEVICE ID</span><strong>TSD-FT-01-0047</strong></div>
                     <div class='tablet-about-entry'><span>REGISTERED OPERATOR</span><strong id='tablet-device-operator'>AWAITING PROFILE</strong></div>
                     <div class='tablet-about-entry tablet-about-owner'><span>TECHNOLOGY DIVISION</span><strong>TSD TECHNOLOGIES</strong></div>
@@ -2394,7 +2394,7 @@
             </span>
 
             <span>
-                FIELD OS // 1.2.0
+                FIELD OS // 1.3.0
             </span>
         </footer>
 
@@ -3044,6 +3044,9 @@ function openExternalApp(id,page){
  appFrames.forEach((element,key)=>element.classList.toggle('active',key===id));switchMainView('app');
 }
 function openRegisteredLog(){const app=registeredApps.find(a=>a.id===activeExternalAppId&&a.logPage)||registeredApps.find(a=>a.logPage);if(app)openExternalApp(app.id,app.logPage)}
+const appBadges=new Map();
+function renderAppBadges(){document.querySelectorAll('[data-external-app]').forEach(button=>{let badge=button.querySelector('.tablet-unread-badge');const count=appBadges.get(button.dataset.externalApp)||0;if(!count){badge?.remove();return;}if(!badge){badge=document.createElement('span');badge.className='tablet-unread-badge';button.querySelector('.tablet-app-icon').append(badge);}badge.textContent=count>99?'99+':String(count);button.setAttribute('aria-label',(registeredApps.find(a=>a.id===button.dataset.externalApp)?.name||'App')+', '+count+' unread');});}
+window.overlay.on('tech-app-badge',json=>{let m;try{m=JSON.parse(json)}catch{return;}if(typeof m.id!=='string'||!Number.isInteger(m.count))return;appBadges.set(m.id,Math.max(0,m.count));renderAppBadges();});
 window.overlay.on('tech-apps',json=>{
  let apps;try{apps=JSON.parse(json).apps}catch(_){return}if(!Array.isArray(apps))return;
  registeredApps=apps;window.tsd.appBrowserInstalledChanged?.();
@@ -3055,7 +3058,7 @@ window.overlay.on('tech-apps',json=>{
   const label=document.createElement('strong');label.textContent=app.name;button.append(icon,label);button.addEventListener('click',()=>openExternalApp(app.id));grid.insertBefore(button,grid.firstElementChild);
   for(const channel of app.channels||[]){const key='tech-app:'+app.id+':'+channel;if(registeredAppChannels.has(key))continue;registeredAppChannels.add(key);window.overlay.on(key,payload=>appFrames.get(app.id)?.contentWindow?.postMessage({tabletHost:true,kind:'event',channel,payload},'*'));}
  }
- document.getElementById('tablet-log-key').disabled=!apps.some(a=>a.logPage);
+ renderAppBadges();document.getElementById('tablet-log-key').disabled=!apps.some(a=>a.logPage);
  for(const [id,frame]of appFrames)if(!apps.some(app=>app.id===id)){frame.remove();appFrames.delete(id);if(activeExternalAppId===id){activeExternalAppId=null;switchMainView('home')}}
 });
 window.overlay.on('tech-app-script',json=>{let m;try{m=JSON.parse(json)}catch(_){return}appFrames.get(m.id)?.contentWindow?.postMessage({tabletHost:true,kind:'script',script:m.script},'*')});

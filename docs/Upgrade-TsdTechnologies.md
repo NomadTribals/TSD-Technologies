@@ -1,4 +1,4 @@
-# TSD Technologies 1.2.1 installation
+# TSD Technologies 1.3.0 installation
 
 1. Close the game and SPT server. Back up the profile and tablet settings.
 2. Extract this archive into the main SPT game folder beside EscapeFromTarkov.exe, merging BepInEx and SPT_Runtime and replacing existing Technologies program files.

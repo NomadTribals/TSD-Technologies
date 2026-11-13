@@ -35,3 +35,7 @@ The JavaScript bridge also supplies:
 Register each id once. Treat its metadata as immutable after registration. Call `TabletRuntime.Unregister(id)` during plugin shutdown. Keep each app's settings, channels, data and backend validation separate. `TabletRuntime.Context` exposes fresh device ownership, raid state, nickname and clock; it is not an authorization substitute for an app's own server checks.
 
 Reference the API supplied with TSD Technologies 1.x, declare the tablet dependency, and test your app against the supported tablet release.
+
+## Optional app badges (Technologies 1.3.0)
+
+The host also implements `ITabletNotificationHost`. Cast the attached host to that interface to call `SetBadge(count)`; zero clears the Home icon badge. `IsAppVisible` reports whether the app is actually shown in the visible tablet window. A remembered page or selected conversation alone must not mark messages read or suppress notifications. Existing app registration and messaging contracts remain unchanged.

@@ -1,7 +1,7 @@
 using System;using System.Collections.Generic;using System.IO;using System.Linq;using System.Reflection;using BepInEx;using BepInEx.Bootstrap;using BepInEx.Configuration;using TsdTechnologies.Api;using UnityEngine;using WebOverlay;
 namespace TsdTechnologies.Overlay
 {
- [BepInPlugin("com.nomadtribals.tsdtechnologies.overlay","TSD Technologies - Field OS","1.2.1")]
+ [BepInPlugin("com.nomadtribals.tsdtechnologies.overlay","TSD Technologies - Field OS","1.3.0")]
  [BepInDependency(TabletRuntime.PluginGuid)]
  [BepInDependency("com.anvil.weboverlay","1.12.0")]
  public sealed class TabletOsPlugin:BaseUnityPlugin
@@ -104,7 +104,7 @@ namespace TsdTechnologies.Overlay
   private static string Resource(string name){using(var stream=typeof(TabletOsPlugin).Assembly.GetManifestResourceStream("TsdTechnologies.Overlay."+name))using(var reader=new StreamReader(stream))return reader.ReadToEnd();}
   private void MigrateFiles(string name){try{string old=Path.Combine(BepInEx.Paths.ConfigPath,"TacticalSupplyDrops",name),target=Path.Combine(BepInEx.Paths.ConfigPath,"TsdTechnologies",name);Directory.CreateDirectory(target);string marker=Path.Combine(target,".legacy-migration-complete");if(File.Exists(marker))return;if(Directory.Exists(old))foreach(var file in Directory.EnumerateFiles(old)){string path=Path.Combine(target,Path.GetFileName(file));if(!File.Exists(path))File.Copy(file,path);}File.WriteAllText(marker,"Device files migrated.");}catch(Exception ex){Logger.LogWarning("Could not migrate device files: "+ex.Message);}}
   private void OnDestroy(){appBrowser?.Dispose();foreach(var host in hosts.Values)host.NotifyVisibility(false);overlay?.Dispose();overlay=null;hosts.Clear();}
-  private sealed class AppHost:ITabletAppHost{
+  private sealed class AppHost:ITabletAppHost,ITabletNotificationHost{
    private readonly TabletOsPlugin owner;private readonly TabletApplication app;private bool ready,shown;private readonly Queue<Action> pending=new Queue<Action>();
    public event Action<string,string> ChannelMessage;public event Action<bool> VisibilityChanged;
    internal AppHost(TabletOsPlugin owner,TabletApplication app){this.owner=owner;this.app=app;}
@@ -113,6 +113,8 @@ namespace TsdTechnologies.Overlay
    internal void NotifyVisibility(bool value){if(shown==value)return;shown=value;try{VisibilityChanged?.Invoke(value);}catch(Exception ex){owner.Logger.LogWarning("App visibility: "+ex.Message);}}
    private void Dispatch(Action action){if(ready)action();else{if(pending.Count>=128)pending.Dequeue();pending.Enqueue(action);}}
    public void ExecuteScript(string script){Dispatch(()=>owner.overlay?.Post("tech-app-script",JsonUtility.ToJson(new ScriptMessage{id=app.Id,script=script})));}
+   public bool IsAppVisible=>shown&&owner.visible;
+   public void SetBadge(int count){Dispatch(()=>owner.overlay?.Post("tech-app-badge",JsonUtility.ToJson(new BadgeMessage{id=app.Id,count=Math.Max(0,Math.Min(9999,count))}),PostOptions.Retain));}
    public void Post(string channel,string payload,TabletPostOptions options=TabletPostOptions.None){if(!app.Channels.Contains(channel))throw new ArgumentException("Declare app channel before posting: "+channel);Dispatch(()=>owner.overlay?.Post("tech-app:"+app.Id+":"+channel,payload,options==TabletPostOptions.LatestOnly?PostOptions.LatestOnly:PostOptions.None));}
    internal void SendDeviceKey(){ExecuteScript("window.tabletApp.setDeviceKey && window.tabletApp.setDeviceKey("+Quote(owner.hotkey.Value.ToString())+");");}
    internal void SendTheme(string value){SendDeviceKey();ExecuteScript("window.tabletApp.setTheme && window.tabletApp.setTheme("+Quote(ValidColor(value)?value:"#e0a43b")+");");}
@@ -123,6 +125,7 @@ namespace TsdTechnologies.Overlay
   [Serializable]private class ScriptMessage{public string id,script;}
   [Serializable]private class Manifest{public List<AppInfo> apps;}
   [Serializable]private class AppInfo{public string id,name,iconSvg,url,logPage;public string[] channels;}
+  [Serializable]private class BadgeMessage{public string id;public int count;}
   [Serializable]private class ContextMessage{public bool hasAccess,inRaid,raidBootCompleted;public string nickname,raidTime,raidBootToken;}
   [Serializable]private class DevicePreferences{public bool sounds;public float volume,brightness;}
   [Serializable]private class Preference{public string key=null,value=null;}
