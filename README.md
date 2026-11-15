@@ -1,4 +1,4 @@
-# TSD Technologies 1.3.0
+# TSD Technologies 1.4.0
 
 **Your tools. One terminal.**
 
@@ -10,7 +10,9 @@ Purchase the TSD Field Terminal from Mechanic at Loyalty Level 1 for a base pric
 
 - Home-screen unread badges and accurate visibility reporting for compatible optional apps such as TSD Messenger.
 
-- Normal startup once per raid and once outside raids per game session, then immediate resume of the last page on subsequent openings.
+- Startup once per game launch by default, then immediate resume across stash and raids; optional once-per-raid mode in F12.
+- Satellite live maps inside the tablet, with an optional matching click-through minimap.
+- Saved map visibility preferences and a configurable direct Maps shortcut (M by default).
 
 - TSD Access for nearby keycard readers with configurable scan range and bypass duration.
 - App Browser with compatible app details and Forge links.
@@ -30,7 +32,7 @@ Tactical Supply Drops is the first Logistics app. **Logistics is installed separ
 
 ## Requirements
 
-SPT 4.1.6 and Anvil WebOverlay 1.12.0 or newer. Install compatible apps separately. Fika compatibility remains unverified.
+SPT 4.1.6 and Anvil WebOverlay 1.12.0 or newer. Satellite is optional and installed separately for Maps and the minimap; tested with Satellite 1.0.1. Install compatible apps separately. Fika compatibility remains unverified.
 
 ## Installation
 
@@ -42,7 +44,13 @@ Use your configured tablet key (F9 on a fresh installation). Stop sprinting and 
 
 ## Future development
 
-Maps currently displays a Coming Soon page.
+Maps uses Satellite by Fums. Open Maps with M (configurable in F12) or from Home. The minimap follows the player during raids while the tablet is closed; configure size and placement under F12 → Satellite. Change visible markers in Satellite’s menu inside Maps. These preferences are saved between game launches.
+
+[Get Satellite](https://sp-mod.com/mod/3373/satellite) · [Get TSD Messenger](https://sp-mod.com/addon/196/tsd-messenger)
+
+![Tablet Maps](images/TSD-Maps-Preview.png)
+
+![Tablet minimap](images/TSD-Minimap-Preview.png)
 
 A future goal is to integrate the live interface directly into the physical tablet screen, following its movement. Feasibility and performance still need investigation; no release date is promised.
 
@@ -51,3 +59,6 @@ A future goal is to integrate the live interface directly into the physical tabl
 TSD Technologies is built on **Anvil WebOverlay** by **maschine**. Thank you for the framework, your direct support, and the improvements made with this project in mind. This tablet would not have been possible without that foundation.
 
 https://github.com/maschine34675/WebOverlay
+
+
+Thanks to **Fums** for [Satellite](https://github.com/MrFums/Satellite), CC BY-NC 4.0. The bridge adapts the viewer layout; Satellite code and map scans are not bundled.

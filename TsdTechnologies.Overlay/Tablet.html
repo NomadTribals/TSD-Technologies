@@ -2141,7 +2141,9 @@
 .tablet-coming-soon>svg{width:54px;height:54px;fill:#d27a3f;opacity:.9;}.tablet-coming-soon>.eyebrow{font:600 9px/1.5 Arial;letter-spacing:2px;color:#9faab4;}.tablet-coming-soon h1{font:500 clamp(22px,3vw,32px)/1.2 Arial;letter-spacing:-.4px;margin:0;}.tablet-coming-soon p{font:400 12px/1.9 Arial;color:#aeb8bf;margin:0;}.coming-soon-badge{padding:7px 10px;border:1px solid #604b3c;color:#d59669;font:600 8px/1.4 Arial;letter-spacing:1.8px;}
 .tablet-about-credit{padding:20px 26px;border-top:1px solid #3a4248;color:#b4bec5;}.tablet-about-credit>strong{font-size:10px;letter-spacing:1.5px;color:#dfc8aa;}.tablet-about-credit p{font-size:11px;line-height:1.8;margin:10px 0;}.tablet-about-credit>span{font-size:10px;color:#929fa9;user-select:text;}
 @media(max-height:720px){.tablet-coming-soon{gap:12px;padding:24px 18px;}.tablet-coming-soon>svg{width:38px;height:38px;}}
-/* Maps occupies the tablet display; ordinary OS chrome returns on leaving Maps. */
+/* Keep controls and attribution inside the display's existing safe area. */
+#satellite-required{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:16px;text-align:center;color:#dce2e5;background:radial-gradient(ellipse at top,#293239,#11171c)}#satellite-required[hidden],#satellite-map[hidden]{display:none!important}#satellite-required h2{margin:0;font-size:26px}#satellite-required p{max-width:480px;line-height:1.8;margin:0;color:#aeb9c0}#satellite-required small{color:#87959e;font-size:10px}#satellite-forge{padding:12px 18px;border:1px solid #9c793f;background:#352d20;color:#ecc270;cursor:pointer;border-radius:3px}#satellite-required .eyebrow{letter-spacing:2px;color:#c99742;font-size:10px}#map-view{overflow:hidden;padding:8px;gap:6px;flex:1;min-height:0;}#satellite-map{border:0;width:100%;flex:1;min-height:180px;background:#10151a}.satellite-toolbar{display:flex;gap:10px;align-items:center;flex:0 0 auto;font:10px Arial;color:#d6dce0}.satellite-toolbar strong{margin-right:auto;letter-spacing:2px}.satellite-toolbar button{padding:8px;background:#283137;border:1px solid #56616a;color:#e1e5e7;cursor:pointer}.satellite-credit{flex:0 0 auto;font:10px Arial;color:#aeb8bf;padding:3px}
+
 </style><style>#access-view{overflow:auto;min-height:0;padding:20px 24px;background:radial-gradient(ellipse at 90% 0%,#303132 0%,#13191d 60%);color:#dce1e4;gap:18px;}
 #access-view.hidden{display:none;}.access-head{display:flex;justify-content:space-between;gap:18px;align-items:center;border-bottom:1px solid #41484d;padding-bottom:16px;}.access-head h1{font-size:28px;letter-spacing:3px;margin:7px 0;color:#f2f3f3;}.access-head p{margin:0;color:#9ba6ac;font-size:12px;}.access-head .eyebrow{color:var(--orange);letter-spacing:3px;}.access-settings{display:flex;gap:8px;}.access-setting{padding:10px 14px;border:1px solid #41494f;background:#171d22;font-size:9px;letter-spacing:1px;color:#a8b2b8;white-space:nowrap;}.access-setting strong{display:block;margin-top:5px;font:20px Consolas,monospace;color:var(--orange);}.access-layout{display:grid;grid-template-columns:minmax(180px, .85fr) minmax(270px,1.6fr);gap:18px;}.access-panel{border:1px solid #3d474d;background:#10161beb;border-radius:5px;overflow:hidden;}.access-panel-title{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#252d32;border-bottom:1px solid #414a50;font-size:10px;letter-spacing:1.6px;color:#c7d0d5;}.access-button{padding:10px 16px;background:#253039;border:1px solid #59656d;border-radius:3px;color:#dde3e6;font-size:10px;font-weight:700;letter-spacing:1px;cursor:pointer;}.access-button.primary{border-color:var(--orange-dark);background:linear-gradient(135deg,#544125,#2e281e);color:var(--orange-bright);}.access-button:disabled{opacity:.4;cursor:default;}.access-readers{display:flex;flex-direction:column;padding:10px;gap:8px;}.access-reader{display:flex;flex-direction:column;text-align:left;gap:8px;padding:14px;background:#1e282e;border:1px solid #3e4c54;border-radius:3px;color:#dde3e6;cursor:pointer;}.access-reader strong{font-size:12px;line-height:1.5;}.access-reader span{font:10px Consolas,monospace;color:#a7b2b8;}.access-reader.selected{border-color:var(--orange);background:#302b22;}.access-reader:disabled{cursor:default;}.access-empty{padding:18px 12px;color:#8e9ca5;font-size:12px;line-height:1.8;}.access-target{padding:16px;border-bottom:1px solid #313e46;}.access-target h2{margin:0 0 8px;font-size:15px;line-height:1.5;}.access-target small{color:var(--orange);letter-spacing:2px;font-size:9px;}.access-progress{padding:18px 16px;}.access-progress-head{display:flex;justify-content:space-between;align-items:center;font-size:9px;letter-spacing:2px;color:#9ca9b2;}.access-percent{font:30px Consolas,monospace;color:var(--orange);}.access-track{height:7px;background:#293137;overflow:hidden;margin-top:12px;border-radius:2px;}.access-fill{height:100%;width:0;background:var(--orange);transition:width .18s linear;box-shadow:0 0 14px var(--orange);}.access-sequence{list-style:none;padding:0 16px;margin:0;font:11px/1.7 Consolas,monospace;}.access-sequence li{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #263038;color:#72818c;}.access-sequence li.current{color:var(--orange-bright);}.access-sequence li.done{color:#a3c6b6;}.access-sequence span{font-size:9px;}.access-actions{display:flex;gap:8px;padding:18px 16px;}.access-status{font:11px/1.7 Consolas,monospace;border-left:2px solid var(--orange-dark);padding:10px 14px;background:#151e24;color:#bac8d1;margin:0;}.access-note{color:#87969f;font-size:10px;line-height:1.7;margin:0;}.access-busy .access-percent{animation:access-pulse 1.4s ease-in-out infinite;}[data-phase='success'] .access-fill{background:#88bfa1;}@keyframes access-pulse{50%{opacity:.6;}}@media(max-width:800px){.access-head{align-items:flex-start;flex-direction:column;}.access-layout{grid-template-columns:1fr;}#access-view{padding:14px;}}@media(prefers-reduced-motion:reduce){.access-busy .access-percent{animation:none;}.access-fill{transition:none;}}
 .app[data-app='access']>.header,.app[data-app='access']>.footer{display:none!important;}
@@ -2252,7 +2254,7 @@
                 </button>
                 <button id='tablet-maps-app' class='tablet-app-card' type='button' data-open-app='maps' title='Browse field maps'>
                     <span class='tablet-app-icon'><svg viewBox='0 0 48 48' aria-hidden='true'><path d='m3 10 14-6 14 6 14-6v34l-14 6-14-6-14 6V10Zm16 0v23l10 4V14l-10-4ZM7 13v25l8-4V10l-8 3Zm26 1v23l8-3V10l-8 4Z'/></svg></span>
-                    <strong>Maps</strong><span>Field mapping in development</span><small id='tablet-maps-app-status'>COMING SOON</small>
+                    <strong>Maps</strong><span>Satellite live map</span><small id='tablet-maps-app-status'>SATELLITE PREVIEW</small>
                 </button>
                 <button class='tablet-app-card' type='button' data-open-app='access' title='Nearby keycard access'><span class='tablet-app-icon' style='background:linear-gradient(145deg,#574326,#252b30)'><svg viewBox='0 0 48 48' aria-hidden='true'><path d='M24 3 7 10v12c0 11 7 19 17 23 10-4 17-12 17-23V10L24 3Zm0 5 12 5v9c0 8-5 15-12 18-7-3-12-10-12-18v-9l12-5Z'/><path d='M18 20v-3a6 6 0 0 1 12 0v3h2v13H16V20h2Zm4 0h4v-3a2 2 0 0 0-4 0v3Zm0 4v5h4v-5h-4Z'/></svg></span><strong>TSD Access</strong><span>Local keycard bypass</span></button>
                 <button id='tablet-browser-app' class='tablet-app-card' type='button' data-open-app='browser' title='Browse tablet apps'>
@@ -2354,8 +2356,8 @@
                 <div class='panel-header'><span class='panel-title'>DEVICE INFORMATION</span><span class='eyebrow'>SYSTEM RECORD // TSD-FT-01</span></div>
                 <div class='tablet-about-grid'>
                     <div class='tablet-about-entry'><span>TERMINAL</span><strong>TSD FIELD TERMINAL</strong></div>
-                    <div class='tablet-about-entry'><span>FIRMWARE</span><strong>TSD FIELD OS // 1.3.0</strong></div>
-                    <div class='tablet-about-entry'><span>TABLET VERSION</span><strong>1.3.0</strong></div>
+                    <div class='tablet-about-entry'><span>FIRMWARE</span><strong>TSD FIELD OS // 1.4.0</strong></div>
+                    <div class='tablet-about-entry'><span>TABLET VERSION</span><strong>1.4.0</strong></div>
                     <div class='tablet-about-entry'><span>DEVICE ID</span><strong>TSD-FT-01-0047</strong></div>
                     <div class='tablet-about-entry'><span>REGISTERED OPERATOR</span><strong id='tablet-device-operator'>AWAITING PROFILE</strong></div>
                     <div class='tablet-about-entry tablet-about-owner'><span>TECHNOLOGY DIVISION</span><strong>TSD TECHNOLOGIES</strong></div>
@@ -2365,7 +2367,7 @@
                 <div class='tablet-about-ip'><span>INTELLECTUAL PROPERTY</span><strong>© 2026 TSD TECHNOLOGIES. ALL RIGHTS RESERVED.</strong></div>
             </section>
         </div>
-        <div id='map-view' class='view-panel hidden'><section class='section-heading'><div><div class='eyebrow'>TSD MAP SOLUTIONS</div><div class='section-title'>COMING SOON</div><div class='section-description'>Field mapping is under development. More information will be available in a future update.</div></div></section></div>
+        <div id='map-view' class='view-panel hidden'><div class='satellite-toolbar'><strong>TSD // SATELLITE</strong><button id='satellite-reload' type='button'>Reload map</button><button id='satellite-mini' type='button'>Minimap: OFF</button></div><section id='satellite-required' hidden><div class='eyebrow'>TSD MAPS // SATELLITE</div><h2 id='satellite-required-title'>Satellite required</h2><p id='satellite-required-text'></p><button id='satellite-forge' type='button'>Get Satellite on the Forge ↗</button><small>Satellite by Fums · CC BY-NC 4.0</small></section><iframe id='satellite-map' title='Satellite by Fums'></iframe><div class='satellite-credit'>Satellite by Fums · CC BY-NC 4.0</div></div>
         <div id='access-view' class='view-panel hidden'>
           <header class='access-head'><div><span class='eyebrow'>TSD TECHNOLOGIES // ACCESS SYSTEMS</span><h1>TSD ACCESS</h1><p>Electronic access. Local connection.</p></div><div class='access-settings'><div class='access-setting'>SCAN RADIUS<strong data-access-range>5.0 m</strong></div><div class='access-setting'>BYPASS TIME<strong data-access-duration>10 s</strong></div></div></header>
           <p class='access-status' data-access-status role='status' aria-live='polite'>Scan for nearby electronic access controllers.</p>
@@ -2394,7 +2396,7 @@
             </span>
 
             <span>
-                FIELD OS // 1.3.0
+                FIELD OS // 1.4.0
             </span>
         </footer>
 
@@ -2673,6 +2675,7 @@
     window.tsd.beginTabletShutdown = beginTabletShutdown;    window.tsd.setTabletVisible = function(visible) {
         if (visible) beginTabletStartup();
         else { tabletVisible = false; clearTabletSequenceTimers(); tabletRoot?.classList.remove('tablet-welcoming'); stopTabletHum(); }
+    window.tsd.satelliteWindowVisible?.(visible);
     };    if (tabletSoundToggle) tabletSoundToggle.addEventListener('click', () => {
         tabletSoundEnabled = !tabletSoundEnabled; tabletStorage.set('tsd-tablet-sounds', tabletSoundEnabled ? 'true' : 'false'); syncTabletSoundUi();
         if (tabletSoundEnabled) startTabletHum(); else stopTabletHum();
@@ -2773,6 +2776,7 @@ function switchMainView(viewName) {
     Object.entries(mainViews).forEach(([name,view])=>view?.classList.toggle('hidden',name!==viewName));
     document.getElementById('tablet-map-key').setAttribute('aria-pressed',String(viewName==='map'));
     notifyExternalVisibility(viewName==='app');
+    window.tsd.syncSatellite?.();
     if(viewName==='browser')window.tsd.refreshAppBrowser?.();
     window.tsd.setAccessVisible?.(viewName==='access');
 }
@@ -3069,6 +3073,7 @@ window.addEventListener('message',event=>{
  else if(m.kind==='page'&&id===activeExternalAppId&&currentTabletView==='app')document.getElementById('tablet-current-page').textContent=String(m.page||'').toUpperCase();
  else if(m.kind==='activity')setTabletDataActivity(id+'/'+String(m.operation),!!m.active);
  else if(m.kind==='sound')playTabletSound(String(m.sound));
+ else if(m.kind==='map-shortcut')window.overlay.send('tsd-map-shortcut','');
  else if(m.kind==='device-close')beginTabletShutdown();
  else if(m.kind==='ready')window.overlay.send('tech-app-ready',id);
 });
@@ -3079,5 +3084,5 @@ window.overlay.send('tsd-ready','ready');
 
 <script>/*TSD_APP_BROWSER_SCRIPT*/</script>
 <script>/*TSD_ACCESS_SCRIPT*/</script>
-</body>
+<script>/*TSD_SATELLITE_SCRIPT*/</script></body>
 </html>

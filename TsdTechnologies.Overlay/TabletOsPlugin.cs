@@ -1,15 +1,16 @@
 using System;using System.Collections.Generic;using System.IO;using System.Linq;using System.Reflection;using BepInEx;using BepInEx.Bootstrap;using BepInEx.Configuration;using TsdTechnologies.Api;using UnityEngine;using WebOverlay;
 namespace TsdTechnologies.Overlay
 {
- [BepInPlugin("com.nomadtribals.tsdtechnologies.overlay","TSD Technologies - Field OS","1.3.0")]
+ public enum TabletBootFrequency{OncePerGameLaunch,OncePerRaid}
+ [BepInPlugin("com.nomadtribals.tsdtechnologies.overlay","TSD Technologies - Field OS","1.4.0")]
  [BepInDependency(TabletRuntime.PluginGuid)]
  [BepInDependency("com.anvil.weboverlay","1.12.0")]
  public sealed class TabletOsPlugin:BaseUnityPlugin
  {
   private IWebOverlay overlay;private ConfigFile settings;private TsdUnifiedConfig migration;private TsdWallpapers wallpapers;private string appDocumentsFolder;
-  private ConfigEntry<KeyCode> hotkey;private ConfigEntry<string> color;private ConfigEntry<bool> sounds;private ConfigEntry<float> volume,brightness;
+  private ConfigEntry<KeyCode> hotkey,mapHotkey;private ConfigEntry<TabletBootFrequency> bootFrequency;private bool requestedMap,launchBootCompleted;private readonly string launchBootToken="launch-"+Guid.NewGuid().ToString("N");private ConfigEntry<string> color;private ConfigEntry<bool> sounds;private ConfigEntry<float> volume,brightness;
   private bool visible,capturing;private float suppressUntil,timer;private long lastContextTicks;private long appRevision=-1;
-  private TsdAccess access;
+  private TsdAccess access;private SatelliteBridge satellite;private string lastSatelliteState;
   private TsdAppBrowser appBrowser;private readonly System.Collections.Concurrent.ConcurrentQueue<string> browserMessages=new System.Collections.Concurrent.ConcurrentQueue<string>();
   private EFT.ClientGameWorld bootWorld;private string raidBootToken;private bool raidBootCompleted;
   private readonly string menuBootToken="menu-"+Guid.NewGuid().ToString("N");private bool menuBootCompleted;
@@ -18,6 +19,9 @@ namespace TsdTechnologies.Overlay
    settings=Chainloader.PluginInfos[TabletRuntime.PluginGuid].Instance.Config;
    migration=new TsdUnifiedConfig(settings,Path.Combine(BepInEx.Paths.ConfigPath,"com.nomadtribals.tacticalsupplydrops.cfg"));
    hotkey=migration.Bind("Controls","TabletToggleKey",KeyCode.F9,"Open or close your tablet.");
+   mapHotkey=migration.Bind("Controls","MapToggleKey",KeyCode.M,"Open Maps directly, or close the tablet when Maps is already open. None disables the shortcut.");
+   bootFrequency=migration.Bind("Tablet Startup","BootFrequency",TabletBootFrequency.OncePerGameLaunch,"OncePerGameLaunch: boot once after starting the game, then resume immediately across stash and raids. OncePerRaid: boot for each new raid and once outside raids.");
+   mapHotkey.SettingChanged+=(sender,args)=>{SendSatelliteState();foreach(var host in hosts.Values)host.SendDeviceKey();};
    color=migration.Bind("Appearance","InterfaceColor","#e0a43b","Interface accent color (#RRGGBB).");
    sounds=migration.Bind("Tablet Audio","SoundsEnabled",true,"Enable device sounds.");volume=migration.Bind("Tablet Audio","Volume",.5f,"Device sound volume, 0 to 1.");brightness=migration.Bind("Appearance","Brightness",.55f,"Screen brightness, 0.55 to 1.25.");
    MigrateFiles("Wallpapers");
@@ -26,35 +30,51 @@ namespace TsdTechnologies.Overlay
    color.SettingChanged+=(sender,args)=>{if(ValidColor(color.Value)){overlay?.ExecuteScript("window.tsd.onInterfaceColorLoaded("+Quote(color.Value)+");");foreach(var host in hosts.Values)host.SendTheme(color.Value);}};
    access=new TsdAccess(this,settings,json=>overlay?.Post("tsd-access-state",json,PostOptions.LatestOnly));
    appBrowser=new TsdAppBrowser(Path.Combine(BepInEx.Paths.ConfigPath,"TsdTechnologies","AppBrowser"),Resource("AppCatalogue.json"),json=>browserMessages.Enqueue(json));
+   try{satellite=new SatelliteBridge(settings);}catch(Exception ex){Logger.LogWarning("Satellite preview unavailable: "+ex.Message);}
    gameObject.AddComponent<Animation.TabletAnimationController>().Initialize(this,settings,Logger);
    Logger.LogInfo("TSD Technologies Field OS ready. Installed apps register independently.");
   }
   private void Update(){
    access?.Tick(Time.unscaledDeltaTime,visible);
+   var satState=TabletRuntime.Context;satellite?.Tick(satState.IsFresh&&satState.HasTablet&&satState.InRaid&&Chainloader.PluginInfos.ContainsKey("com.fums.satellite"),visible);
    string browserMessage;while(browserMessages.TryDequeue(out browserMessage))overlay?.Post("tsd-browser-catalogue",browserMessage,PostOptions.Retain);
-   if(!capturing&&Time.unscaledTime>=suppressUntil&&Input.GetKeyDown(hotkey.Value))ToggleTablet();
+   if(satellite!=null)satellite.MapVirtualKey=WebOverlayPlugin.VirtualKey(mapHotkey.Value);
+   if(!capturing&&Time.unscaledTime>=suppressUntil){if(Input.GetKeyDown(hotkey.Value)){requestedMap=false;ToggleTablet();}else if(mapHotkey.Value!=KeyCode.None&&Input.GetKeyDown(mapHotkey.Value))OpenMaps();}
    timer+=Time.unscaledDeltaTime;if(timer<.25f)return;timer=0;
    if(overlay==null)return;
+   if(lastSatelliteState!=SatelliteStatus()){lastSatelliteState=SatelliteStatus();SendSatelliteState();}
    var state=TabletRuntime.Context;if(state.UpdatedUtcTicks!=lastContextTicks){lastContextTicks=state.UpdatedUtcTicks;SendContext();}
    RefreshApps();
   }
+  private void OpenMaps(){
+   if(capturing||Time.unscaledTime<suppressUntil)return;
+   if(visible){overlay?.ExecuteScript("if(currentTabletView==='map'){window.tsd.beginTabletShutdown();}else{switchMainView('map');}");return;}
+   requestedMap=true;ToggleTablet();
+  }
+  private void ApplyRequestedMap(){if(!requestedMap)return;requestedMap=false;overlay?.ExecuteScript("switchMainView('map');");}
   private void ToggleTablet(){
-   if(overlay!=null){if(visible)overlay.ExecuteScript("window.tsd.beginTabletShutdown();");else{var state=TabletRuntime.Context;if(!state.IsFresh||!state.HasTablet)return;overlay.Show();visible=true;SendPreferences();SendContext();overlay.ExecuteScript("window.tsd.setTabletVisible(true);");}return;}
+   if(overlay!=null){if(visible)overlay.ExecuteScript("window.tsd.beginTabletShutdown();");else{var state=TabletRuntime.Context;if(!state.IsFresh||!state.HasTablet)return;overlay.Show();visible=true;SendPreferences();SendContext();ApplyRequestedMap();overlay.ExecuteScript("window.tsd.setTabletVisible(true);");}return;}
    var context=TabletRuntime.Context;if(!context.IsFresh||!context.HasTablet){Logger.LogWarning("Carry your TSD Field Terminal to open the tablet.");return;}
    overlay=WebOverlays.Create("TSD Technologies - Field OS",new OverlayOptions{Width=1200,Height=800,MinWidth=1000,MinHeight=650,Frame=false,RememberBounds=true,CloseKeys=new int[0],FreeCursorWhileShown=true,ClickThroughWhenUnfocused=true,DispatchOnMainThread=true,
+    AllowedOrigins=satellite==null?new string[0]:new[]{satellite.Origin},
     VirtualHosts=new[]{new VirtualHost{Host="tsd-wallpapers.assets",Folder=wallpapers.Folder,Access=HostAccess.DenyCors},new VirtualHost{Host="tsd-apps.assets",Folder=appDocumentsFolder,Access=HostAccess.DenyCors}}});
-   if(overlay==null)return;visible=true;var created=overlay;
+   if(overlay==null)return;
+   if(lastSatelliteState!=SatelliteStatus()){lastSatelliteState=SatelliteStatus();SendSatelliteState();}visible=true;var created=overlay;
    created.VisibilityChanged+=value=>{visible=value;if(!value){access?.SetVisible(false);foreach(var host in hosts.Values)host.NotifyVisibility(false);created.ExecuteScript("window.tsd.setTabletVisible(false);");}};
-   created.KeyPressed+=key=>{if(!capturing&&visible&&Time.unscaledTime>=suppressUntil&&(key==0x1B||key==WebOverlayPlugin.VirtualKey(hotkey.Value)))created.ExecuteScript("window.tsd.beginTabletShutdown();");};
+   created.KeyPressed+=key=>{if(capturing||!visible||Time.unscaledTime<suppressUntil)return;if(key==0x1B||key==WebOverlayPlugin.VirtualKey(hotkey.Value))created.ExecuteScript("window.tsd.beginTabletShutdown();");else if(mapHotkey.Value!=KeyCode.None&&key==WebOverlayPlugin.VirtualKey(mapHotkey.Value))OpenMaps();};
    created.ChannelMessage+=HandleChannel;
    created.ChannelsFailed+=()=>Logger.LogError("Field OS communication failed.");
    created.Failed+=()=>{Logger.LogError("Field OS window failed: "+created.FailureMessage);foreach(var h in hosts.Values)h.NotifyVisibility(false);hosts.Clear();created.Dispose();if(ReferenceEquals(overlay,created))overlay=null;visible=false;appRevision=-1;};
-   created.LoadHtml(Resource("Tablet.html").Replace("/*TSD_APP_BROWSER_SCRIPT*/",Resource("AppBrowser.js")).Replace("/*TSD_ACCESS_SCRIPT*/",Resource("Access.js")));
+   created.LoadHtml(Resource("Tablet.html").Replace("/*TSD_APP_BROWSER_SCRIPT*/",Resource("AppBrowser.js")).Replace("/*TSD_ACCESS_SCRIPT*/",Resource("Access.js")).Replace("/*TSD_SATELLITE_SCRIPT*/",Resource("Satellite.js")));
   }
   private void HandleChannel(string channel,string payload){
    Logger.LogDebug("Field OS channel: "+channel);
-   if(channel=="tsd-boot-complete"){if(!string.IsNullOrEmpty(payload)&&payload==GetRaidBootToken()){if(payload==menuBootToken)menuBootCompleted=true;else raidBootCompleted=true;}return;}
-   if(channel=="tsd-ready"){appRevision=-1;RefreshApps();wallpapers.Refresh();SendPreferences();SendContext();overlay.ExecuteScript("window.tsd.onInterfaceColorLoaded("+Quote(ValidColor(color.Value)?color.Value:"#e0a43b")+");window.tsd.onTabletHotkeyLoaded("+Quote(hotkey.Value.ToString())+");window.tsd.setTabletVisible(true);");return;}
+   if(channel=="tsd-satellite-preferences"){if(satellite?.SavePreferences(payload)!=true)Logger.LogWarning("Satellite preferences could not be saved.");return;}
+   if(channel=="tsd-map-shortcut"){if(visible)OpenMaps();return;}
+   if(channel=="tsd-satellite-state"||channel=="tsd-satellite-toggle"){if(channel=="tsd-satellite-toggle"&&visible&&SatelliteStatus()=="ready")satellite?.Toggle();if(channel=="tsd-satellite-state")satellite?.CheckConnection(payload=="refresh");SendSatelliteState();return;}
+   if(channel=="tsd-satellite-forge"){if(visible)try{System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://sp-mod.com/mod/3373/satellite"){UseShellExecute=true});}catch(Exception ex){Logger.LogWarning("Could not open Satellite listing: "+ex.Message);}return;}
+   if(channel=="tsd-boot-complete"){if(!string.IsNullOrEmpty(payload)&&payload==GetRaidBootToken()){launchBootCompleted=true;if(payload==menuBootToken)menuBootCompleted=true;else if(payload!=launchBootToken)raidBootCompleted=true;}return;}
+   if(channel=="tsd-ready"){appRevision=-1;RefreshApps();wallpapers.Refresh();SendPreferences();SendContext();ApplyRequestedMap();overlay.ExecuteScript("window.tsd.onInterfaceColorLoaded("+Quote(ValidColor(color.Value)?color.Value:"#e0a43b")+");window.tsd.onTabletHotkeyLoaded("+Quote(hotkey.Value.ToString())+");window.tsd.setTabletVisible(true);");return;}
    if(channel=="tsd-access-visible"){access.SetVisible(visible&&payload=="true");return;}
    if(channel=="tsd-access-scan"){if(visible)access.Scan();return;}
    if(channel=="tsd-access-start"){if(visible)access.Start(payload);return;}
@@ -81,13 +101,14 @@ namespace TsdTechnologies.Overlay
    overlay.Post("tech-apps",JsonUtility.ToJson(manifest),PostOptions.Retain);
   }
   private string GetRaidBootToken(){
+   if(bootFrequency.Value==TabletBootFrequency.OncePerGameLaunch)return launchBootToken;
    var world=Comfort.Common.Singleton<EFT.GameWorld>.Instantiated?Comfort.Common.Singleton<EFT.GameWorld>.Instance as EFT.ClientGameWorld:null;
    if(world==null||world.GetType().Name=="HideoutGameWorld"||world.MainPlayer?.IsYourPlayer!=true)world=null;
    if(!ReferenceEquals(world,bootWorld)){bootWorld=world;raidBootToken=world==null?null:Guid.NewGuid().ToString("N");raidBootCompleted=false;}
    if(world!=null&&string.IsNullOrEmpty(raidBootToken)){raidBootToken=Guid.NewGuid().ToString("N");raidBootCompleted=false;}
    return world==null?menuBootToken:raidBootToken;
   }
-  private void SendContext(){var state=TabletRuntime.Context;string token=GetRaidBootToken();overlay?.ExecuteScript("window.tsd.onTabletAccessReceived("+JsonUtility.ToJson(new ContextMessage{hasAccess=state.IsFresh&&state.HasTablet,inRaid=state.InRaid,nickname=state.Nickname,raidTime=state.RaidTime,raidBootToken=token,raidBootCompleted=token==menuBootToken?menuBootCompleted:raidBootCompleted})+");");}
+  private void SendContext(){var state=TabletRuntime.Context;string token=GetRaidBootToken();overlay?.ExecuteScript("window.tsd.onTabletAccessReceived("+JsonUtility.ToJson(new ContextMessage{hasAccess=state.IsFresh&&state.HasTablet,inRaid=state.InRaid,nickname=state.Nickname,raidTime=state.RaidTime,raidBootToken=token,raidBootCompleted=token==launchBootToken?launchBootCompleted:token==menuBootToken?menuBootCompleted:raidBootCompleted})+");");}
   private void SendPreferences(){overlay?.Post("tsd-preferences",JsonUtility.ToJson(new DevicePreferences{sounds=sounds.Value,volume=Finite(volume.Value,.5f,0,1),brightness=Finite(brightness.Value,.55f,.55f,1.25f)}),PostOptions.Retain);}
   private void SavePreference(string payload){try{if(payload==null||payload.Length>4096)return;var m=JsonUtility.FromJson<Preference>(payload);if(m==null)return;float value;switch(m.key){case "tsd-tablet-sounds":if(m.value=="true"||m.value=="false")sounds.Value=m.value=="true";break;case "tsd-tablet-volume":if(float.TryParse(m.value,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out value))volume.Value=Finite(value,.5f,0,1);break;case "tsd-tablet-brightness":if(float.TryParse(m.value,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out value))brightness.Value=Finite(value,.55f,.55f,1.25f);break;}}catch(Exception ex){Logger.LogWarning("Device preference could not be saved: "+ex.Message);}}
   private static float Finite(float value,float fallback,float min,float max){return float.IsNaN(value)||float.IsInfinity(value)?fallback:Mathf.Clamp(value,min,max);}
@@ -103,7 +124,10 @@ namespace TsdTechnologies.Overlay
   private static string AppDocument(string document){string bridge="<meta charset='utf-8'><script>"+Resource("AppBridge.js")+"</script>";int head=document.IndexOf("<head",StringComparison.OrdinalIgnoreCase);int end=head>=0?document.IndexOf('>',head):-1;return end>=0?document.Insert(end+1,bridge):bridge+document;}
   private static string Resource(string name){using(var stream=typeof(TabletOsPlugin).Assembly.GetManifestResourceStream("TsdTechnologies.Overlay."+name))using(var reader=new StreamReader(stream))return reader.ReadToEnd();}
   private void MigrateFiles(string name){try{string old=Path.Combine(BepInEx.Paths.ConfigPath,"TacticalSupplyDrops",name),target=Path.Combine(BepInEx.Paths.ConfigPath,"TsdTechnologies",name);Directory.CreateDirectory(target);string marker=Path.Combine(target,".legacy-migration-complete");if(File.Exists(marker))return;if(Directory.Exists(old))foreach(var file in Directory.EnumerateFiles(old)){string path=Path.Combine(target,Path.GetFileName(file));if(!File.Exists(path))File.Copy(file,path);}File.WriteAllText(marker,"Device files migrated.");}catch(Exception ex){Logger.LogWarning("Could not migrate device files: "+ex.Message);}}
-  private void OnDestroy(){appBrowser?.Dispose();foreach(var host in hosts.Values)host.NotifyVisibility(false);overlay?.Dispose();overlay=null;hosts.Clear();}
+  private string SatelliteStatus()=>!Chainloader.PluginInfos.ContainsKey("com.fums.satellite")?"missing-client":satellite?.Connection??"unavailable";
+  private void SendSatelliteState(){overlay?.Post("tsd-satellite-state",JsonUtility.ToJson(new SatelliteState{url=satellite?.MapUrl??"",enabled=satellite?.Enabled??false,status=SatelliteStatus(),mapKey=WebOverlayPlugin.VirtualKey(mapHotkey.Value)}),PostOptions.Retain);}
+  private sealed class SatelliteState{public string url,status;public bool enabled;public int mapKey;}
+  private void OnDestroy(){satellite?.Dispose();appBrowser?.Dispose();foreach(var host in hosts.Values)host.NotifyVisibility(false);overlay?.Dispose();overlay=null;hosts.Clear();}
   private sealed class AppHost:ITabletAppHost,ITabletNotificationHost{
    private readonly TabletOsPlugin owner;private readonly TabletApplication app;private bool ready,shown;private readonly Queue<Action> pending=new Queue<Action>();
    public event Action<string,string> ChannelMessage;public event Action<bool> VisibilityChanged;
@@ -116,7 +140,7 @@ namespace TsdTechnologies.Overlay
    public bool IsAppVisible=>shown&&owner.visible;
    public void SetBadge(int count){Dispatch(()=>owner.overlay?.Post("tech-app-badge",JsonUtility.ToJson(new BadgeMessage{id=app.Id,count=Math.Max(0,Math.Min(9999,count))}),PostOptions.Retain));}
    public void Post(string channel,string payload,TabletPostOptions options=TabletPostOptions.None){if(!app.Channels.Contains(channel))throw new ArgumentException("Declare app channel before posting: "+channel);Dispatch(()=>owner.overlay?.Post("tech-app:"+app.Id+":"+channel,payload,options==TabletPostOptions.LatestOnly?PostOptions.LatestOnly:PostOptions.None));}
-   internal void SendDeviceKey(){ExecuteScript("window.tabletApp.setDeviceKey && window.tabletApp.setDeviceKey("+Quote(owner.hotkey.Value.ToString())+");");}
+   internal void SendDeviceKey(){ExecuteScript("window.tabletApp.setMapKey && window.tabletApp.setMapKey("+WebOverlayPlugin.VirtualKey(owner.mapHotkey.Value)+");");ExecuteScript("window.tabletApp.setDeviceKey && window.tabletApp.setDeviceKey("+Quote(owner.hotkey.Value.ToString())+");");}
    internal void SendTheme(string value){SendDeviceKey();ExecuteScript("window.tabletApp.setTheme && window.tabletApp.setTheme("+Quote(ValidColor(value)?value:"#e0a43b")+");");}
   }
   [Serializable]private class ScriptValue{public string value;}

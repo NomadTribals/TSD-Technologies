@@ -1,6 +1,6 @@
 // Field OS injects this bridge into every registered app before its scripts run.
 (()=>{
- const handlers=new Map();let deviceKey='F9';
+ const handlers=new Map();let deviceKey='F9',mapKey=77;
  const post=(kind,extra={})=>window.parent.postMessage({tabletApp:true,kind,...extra},'*');
  const api=window.tabletApp={
   send:(channel,payload)=>post('send',{channel,payload:String(payload??'')}),
@@ -8,6 +8,7 @@
   activity:(operation,active)=>post('activity',{operation,active}),
   sound:sound=>post('sound',{sound}),page:page=>post('page',{page}),
   setDeviceKey:key=>deviceKey=key,
+  setMapKey:key=>mapKey=Number(key)||0,
   setTheme:color=>window.dispatchEvent(new CustomEvent('tablet-theme',{detail:color}))
  };
  window.addEventListener('message',event=>{
@@ -29,6 +30,7 @@
  document.addEventListener('keydown',event=>{
   if(event.repeat||event.ctrlKey||event.altKey||event.metaKey||!event.key||event.key.length!==1||event.target?.closest?.('input,textarea,select,[contenteditable]'))return;
   const key=deviceKeyName(event);
+  if(event.keyCode===mapKey&&mapKey){event.preventDefault();event.stopPropagation();post('map-shortcut');return;}
   if(key===deviceKey){event.preventDefault();event.stopPropagation();post('device-close')}
  });
  document.addEventListener('pointerdown',()=>api.sound('screen-tap'),true);

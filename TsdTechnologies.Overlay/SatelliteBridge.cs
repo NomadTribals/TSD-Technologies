@@ -1,0 +1,175 @@
+using System;
+using System.IO;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using BepInEx.Configuration;
+using Newtonsoft.Json.Linq;
+using SPT.Common.Http;
+using WebOverlay;
+
+namespace TsdTechnologies.Overlay
+{
+    // Satellite bridge: streams Satellite's installed page, never copies its map pack.
+    internal sealed class SatelliteBridge : IDisposable
+    {
+        private readonly HttpListener listener = new HttpListener();
+        private readonly CancellationTokenSource stop = new CancellationTokenSource();
+        private readonly SemaphoreSlim slots = new SemaphoreSlim(24);
+        private readonly Uri backend;
+        private readonly ConfigEntry<bool> enabled;
+        private readonly ConfigEntry<int> width, height, right, top;
+        private IWebOverlay hud;
+        private string layout;
+        private readonly string preferencesFile;
+        private volatile string preferences = "{}";
+        private readonly string preferencesToken=Guid.NewGuid().ToString("N");
+        private readonly object preferencesGate=new object();
+
+
+        internal volatile string Connection = "ready";
+        internal volatile int MapVirtualKey = 77;
+        internal string Origin { get; }
+        internal string MapUrl => Origin + "/satellite/";
+        internal bool Enabled => enabled.Value;
+        internal SatelliteBridge(ConfigFile config, string preferencesFolder = null)
+        {
+            backend = new Uri(RequestHandler.Host.TrimEnd('/') + "/");
+            preferencesFile = Path.Combine(preferencesFolder ?? Path.Combine(BepInEx.Paths.ConfigPath,"TsdTechnologies","Satellite"),"Preferences.json");
+            try { if(File.Exists(preferencesFile)) { string saved=File.ReadAllText(preferencesFile,Encoding.UTF8); if(saved.Length<=131072)preferences=JObject.Parse(saved).ToString(Newtonsoft.Json.Formatting.None); } } catch { }
+            enabled = config.Bind("Satellite", "MinimapEnabled", false, "Show Satellite in a small click-through tablet during raids.");
+            width = config.Bind("Satellite", "MinimapWidth", 360, new ConfigDescription("Map width in screen pixels.", new AcceptableValueRange<int>(240, 800)));
+            height = config.Bind("Satellite", "MinimapHeight", 300, new ConfigDescription("Map height in screen pixels.", new AcceptableValueRange<int>(200, 700)));
+            right = config.Bind("Satellite", "MinimapRight", 24, new ConfigDescription("Distance from right edge, in pixels.", new AcceptableValueRange<int>(0, 3000)));
+            top = config.Bind("Satellite", "MinimapTop", 130, new ConfigDescription("Distance from top edge, in pixels.", new AcceptableValueRange<int>(0, 2000)));
+            var probe = new TcpListener(IPAddress.Loopback, 0);
+            probe.Start(); int port = ((IPEndPoint)probe.LocalEndpoint).Port; probe.Stop();
+            Origin = "http://127.0.0.1:" + port;
+            listener.Prefixes.Add(Origin + "/"); listener.Start();
+            Task.Run((Func<Task>)Listen);
+
+        }
+        // The real page request is the availability check. A separate preflight must
+        // never prevent a working Satellite installation from loading.
+        internal void CheckConnection(bool force = false) { if (force) Connection = "ready"; }
+        internal bool SavePreferences(string json)
+        {
+            lock(preferencesGate) {
+            try {
+                if(json==null||json.Length>131072)return false;
+                string saved=JObject.Parse(json).ToString(Newtonsoft.Json.Formatting.None);
+                Directory.CreateDirectory(Path.GetDirectoryName(preferencesFile));
+                string temp=preferencesFile+".tmp";File.WriteAllText(temp,saved,new UTF8Encoding(false));
+                if(File.Exists(preferencesFile))File.Replace(temp,preferencesFile,null);else File.Move(temp,preferencesFile);
+                preferences=saved;return true;
+            }catch{return false;}
+            }
+        }
+        internal void Toggle() { enabled.Value = !enabled.Value; }
+        internal void Tick(bool inRaid, bool tabletOpen)
+        {
+            bool show = enabled.Value && inRaid && !tabletOpen && Connection == "ready";
+            if (!show) { if (hud != null) { hud.Dispose(); hud = null; layout = null; } return; }
+            string next = width.Value + ":" + height.Value + ":" + right.Value + ":" + top.Value;
+            if (hud != null && layout == next) return;
+            hud?.Dispose(); layout = next;
+            hud = WebOverlays.Create("TSD Satellite Minimap", new OverlayOptions {
+                Transparent = true, Interactive = false, Frame = false, RememberBounds = false,
+                DispatchOnMainThread = true, CloseKeys = new int[0], AllowedOrigins = new[] { Origin }
+            });
+            if (hud == null) return;
+            var created = hud;
+            created.Failed += () => { created.Dispose(); if (ReferenceEquals(hud, created)) { hud = null; enabled.Value = false; } };
+            using (var stream = typeof(SatelliteBridge).Assembly.GetManifestResourceStream("TsdTechnologies.Overlay.Minimap.html"))
+            using (var reader = new StreamReader(stream))
+                created.LoadHtml(reader.ReadToEnd().Replace("__RIGHT__",right.Value.ToString()).Replace("__TOP__",top.Value.ToString()).Replace("__WIDTH__",width.Value.ToString()).Replace("__HEIGHT__",height.Value.ToString()).Replace("__URL__",MapUrl));
+        }
+        private async Task Listen()
+        {
+            while (!stop.IsCancellationRequested)
+            {
+                HttpListenerContext context;
+                try { context = await listener.GetContextAsync().ConfigureAwait(false); }
+                catch (HttpListenerException) { break; } catch (ObjectDisposedException) { break; }
+                _ = Serve(context);
+            }
+        }
+        private async Task Serve(HttpListenerContext context)
+        {
+            bool acquired = false;
+            try
+            {
+                // Read-only local Satellite route. No arbitrary URLs, credentials or game API proxy.
+                string path = context.Request.Url.AbsolutePath;
+                if(path=="/tsd/preferences"&&context.Request.HttpMethod=="POST") {
+                    if(context.Request.RemoteEndPoint==null||!IPAddress.IsLoopback(context.Request.RemoteEndPoint.Address)
+                        ||context.Request.Headers["X-TSD-Preferences"]!=preferencesToken||context.Request.ContentLength64<0||context.Request.ContentLength64>131072)
+                    {context.Response.StatusCode=403;return;}
+                    string json;using(var reader=new StreamReader(context.Request.InputStream,Encoding.UTF8))json=await reader.ReadToEndAsync().ConfigureAwait(false);
+                    context.Response.StatusCode=SavePreferences(json)?204:400;return;
+                }
+                if (context.Request.HttpMethod != "GET" || !path.StartsWith("/satellite/", StringComparison.Ordinal)
+                    || context.Request.RemoteEndPoint == null || !IPAddress.IsLoopback(context.Request.RemoteEndPoint.Address))
+                { context.Response.StatusCode = 403; return; }
+                var target = new Uri(backend, context.Request.RawUrl);
+                if (target.Authority != backend.Authority || !target.AbsolutePath.StartsWith("/satellite/", StringComparison.Ordinal))
+                { context.Response.StatusCode = 403; return; }
+                acquired = await slots.WaitAsync(0).ConfigureAwait(false);
+                if (!acquired) { context.Response.StatusCode = 503; return; }
+                var request = (HttpWebRequest)WebRequest.Create(target);
+                request.ServicePoint.ConnectionLimit = 32;
+                request.AllowAutoRedirect = false; request.Timeout = 10000;
+                request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
+                // Only SPT's exact loopback endpoint may use its self-signed certificate.
+                request.ServerCertificateValidationCallback = (sender, cert, chain, errors) =>
+                    errors == System.Net.Security.SslPolicyErrors.None || target.IsLoopback;
+                using (stop.Token.Register(request.Abort))
+                using (var response = (HttpWebResponse)await request.GetResponseAsync().ConfigureAwait(false))
+                using (var input = response.GetResponseStream())
+                {
+                    if (path == "/satellite/") Connection = "ready";
+                    context.Response.StatusCode = (int)response.StatusCode;
+                    context.Response.ContentType = response.ContentType;
+                    context.Response.Headers["Cache-Control"] = "no-store";
+                    context.Response.SendChunked = true;
+                    if (path == "/satellite/")
+                    {
+                        string html;
+                        using (var reader = new StreamReader(input, Encoding.UTF8)) html = await reader.ReadToEndAsync().ConfigureAwait(false);
+                        // Only this view is restyled; upstream files and full-page preferences stay intact.
+                        string adapter = "<style>html,body{overflow:hidden!important}body>*:not(#stage){display:none!important}#stage{inset:0!important;width:100%!important;height:100%!important}</style><script>window.addEventListener('load',()=>{const f=document.getElementById('follow');if(f&&f.classList.contains('paused'))f.click();window.dispatchEvent(new Event('resize'));});</script>";
+                        if (context.Request.QueryString["tsdMini"] != "1") adapter = "";
+                        string savedPreferences;
+                        using(var resource=typeof(SatelliteBridge).Assembly.GetManifestResourceStream("TsdTechnologies.Overlay.SatellitePreferences.js"))
+                        using(var reader=new StreamReader(resource))
+                            savedPreferences="<script>"+reader.ReadToEnd().Replace("__MINI__",context.Request.QueryString["tsdMini"]=="1"?"true":"false").Replace("__PREFERENCES_TOKEN__",preferencesToken).Replace("__PREFERENCES__",Convert.ToBase64String(Encoding.UTF8.GetBytes(preferences)))+"</script>";
+                        string keys = "<script>(()=>{let key=" + MapVirtualKey + ";window.addEventListener('message',e=>{if(e.source===parent&&e.data?.tsdMapKey!==undefined)key=Number(e.data.tsdMapKey)||0;});document.addEventListener('keydown',e=>{if(e.repeat||e.ctrlKey||e.altKey||e.metaKey||e.target?.closest?.('input,textarea,select,[contenteditable]'))return;if(key&&e.keyCode===key){e.preventDefault();e.stopImmediatePropagation();parent.postMessage({tsdMapShortcut:true},'*');}},true);})();</script>";
+                        html = html.Replace("</head>", adapter + savedPreferences + keys + "</head>");
+                        byte[] bytes = Encoding.UTF8.GetBytes(html);
+                        await context.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length, stop.Token).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        byte[] buffer = new byte[65536]; int read;
+                        while ((read = await input.ReadAsync(buffer, 0, buffer.Length, stop.Token).ConfigureAwait(false)) != 0)
+                        {
+                            await context.Response.OutputStream.WriteAsync(buffer, 0, read, stop.Token).ConfigureAwait(false);
+                            await context.Response.OutputStream.FlushAsync(stop.Token).ConfigureAwait(false);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex) {
+                if (context.Request.Url.AbsolutePath == "/satellite/") {
+                    var failed = (ex as WebException)?.Response as HttpWebResponse;
+                    Connection = failed?.StatusCode == HttpStatusCode.NotFound ? "missing-server" : "unavailable";
+                    failed?.Dispose();
+                }
+                try { context.Response.StatusCode = 502; byte[] b = Encoding.UTF8.GetBytes("Satellite is unavailable. Start the SPT server with Satellite installed, then reload Maps."); await context.Response.OutputStream.WriteAsync(b, 0, b.Length); } catch { } }
+            finally { try { context.Response.Close(); } catch { } if (acquired) slots.Release(); }
+        }
+        public void Dispose() { hud?.Dispose(); hud = null; stop.Cancel(); listener.Close(); }
+    }
+}
