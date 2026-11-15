@@ -1,4 +1,4 @@
-# TSD Technologies 1.4.0
+# TSD Technologies 1.4.1
 
 **Your tools. One terminal.**
 
@@ -12,7 +12,8 @@ Purchase the TSD Field Terminal from Mechanic at Loyalty Level 1 for a base pric
 
 - Startup once per game launch by default, then immediate resume across stash and raids; optional once-per-raid mode in F12.
 - Satellite live maps inside the tablet, with an optional matching click-through minimap.
-- Saved map visibility preferences and a configurable direct Maps shortcut (M by default).
+- Saved map visibility preferences, plus Hold/Toggle minimap enlargement using M by default.
+- Configurable expanded size (85% default) and opacity (80% default), with a short visual transition.
 
 - TSD Access for nearby keycard readers with configurable scan range and bypass duration.
 - App Browser with compatible app details and Forge links.
@@ -44,7 +45,7 @@ Use your configured tablet key (F9 on a fresh installation). Stop sprinting and 
 
 ## Future development
 
-Maps uses Satellite by Fums. Open Maps with M (configurable in F12) or from Home. The minimap follows the player during raids while the tablet is closed; configure size and placement under F12 → Satellite. Change visible markers in Satellite’s menu inside Maps. These preferences are saved between game launches.
+Maps uses Satellite by Fums. Open interactive Maps from the tablet Home screen. M now controls minimap enlargement only: hold/release by default, or choose Toggle in F12 → Satellite → MapExpansionMode. The minimap follows the player during raids while the tablet is closed; configure size and placement under F12 → Satellite. Change visible markers in Satellite’s menu inside Maps. These preferences are saved between game launches.
 
 [Get Satellite](https://sp-mod.com/mod/3373/satellite) · [Get TSD Messenger](https://sp-mod.com/addon/196/tsd-messenger)
 
@@ -62,3 +63,10 @@ https://github.com/maschine34675/WebOverlay
 
 
 Thanks to **Fums** for [Satellite](https://github.com/MrFums/Satellite), CC BY-NC 4.0. The bridge adapts the viewer layout; Satellite code and map scans are not bundled.
+
+
+## Expanded map controls
+
+Enable the minimap in Maps first. Hold M to enlarge while moving or sprinting; release to restore the exact compact size and position. In Toggle mode, press M to enlarge and press again to restore. Both views stay click-through.
+
+F12 → Satellite provides MapExpansionMode, ExpandedMapSizePercent and ExpandedMapOpacity. The small minimap remains fully opaque. F12 → Controls → MapToggleKey changes or disables the enlargement key. The normal tablet key (F9 on a fresh install, or the existing configured key such as F10) opens the interactive tablet.

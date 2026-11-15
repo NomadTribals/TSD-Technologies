@@ -3,6 +3,7 @@
 *{box-sizing:border-box}html,body{margin:0;background:transparent;overflow:hidden;pointer-events:none}
 #tablet{container-type:inline-size;position:absolute;right:__RIGHT__px;top:__TOP__px;width:min(__WIDTH__px,calc(100vw - 16px));height:min(__HEIGHT__px,calc(100vh - __TOP__px - 8px));min-height:140px;padding:21px 16px 24px;background:linear-gradient(90deg,#080b0c,#333b3e 3%,#161c1e 6%,#101517 94%,#343c3f 97%,#080b0c);border:2px solid #050708;border-radius:3px;box-shadow:inset 0 0 0 1px #59616466,inset 0 0 0 5px #090d0f,0 4px 10px #000b;color:#a5adae;font:7px Arial,sans-serif}
 .screen{position:relative;width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden;clip-path:polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px),0 8px);background:#101619;border:1px solid #050708;box-shadow:0 0 0 3px #050708}
+.map-expanded #tablet{left:max(8px,calc((100vw - var(--expanded-width,85vw))/2));top:max(8px,calc((100vh - var(--expanded-height,85vh))/2));right:auto;width:min(var(--expanded-width,85vw),calc(100vw - 16px));height:min(var(--expanded-height,85vh),calc(100vh - 16px));opacity:var(--expanded-opacity,.8)}
 iframe{border:0;width:100%;flex:1;min-height:0;display:block}footer{flex:0 0 16px;text-align:center;padding:3px 0;background:#101619;color:#bdc5c7;font:8px Arial,sans-serif;white-space:nowrap}
 .rail{position:absolute;z-index:2;border:1px solid #080b0c;border-radius:1px;box-shadow:inset 0 1px 1px #dce1db21,inset 0 -2px 4px #000e,0 0 0 1px #000b}
 .rail.side{top:25px;bottom:27px;width:7px;background:linear-gradient(90deg,#080b0c,#252c2e 18%,#555d5f 28%,#22282a 39%,#101416 48%,#303638 62%,#161b1d 78%,#080b0c)}
@@ -23,4 +24,24 @@ iframe{border:0;width:100%;flex:1;min-height:0;display:block}footer{flex:0 0 16p
  <div class='plate'>TSD // FIELD TERMINAL</div><div class='link'><i class='led'></i>TSD LINK<svg class='wifi' viewBox='0 0 20 18'><path d='M2 6 Q10 -1 18 6 M5 9 Q10 4 15 9 M8 12 Q10 10 12 12'/><circle cx='10' cy='15' r='1'/></svg></div>
  <div class='screen'><iframe title='Satellite minimap' src='__URL__?tsdMini=1'></iframe><footer>Satellite by Fums · CC BY-NC 4.0</footer></div>
  <div class='controls' aria-hidden='true'><span class='bank'>MODE <i class='key active'>MAP</i><i class='key'>LOG</i></span><span class='bank'>TSD // MAP LINK</span><span class='power'>⏻</span></div>
-</section></body></html>
+</section><script>
+(()=>{
+ const tablet=document.getElementById('tablet');let animation;
+ window.tsdSetMapExpanded=(expanded,percent,opacity=.8)=>{
+  const before=tablet.getBoundingClientRect(),beforeOpacity=getComputedStyle(tablet).opacity;animation?.cancel();
+  const size=Math.max(50,Math.min(100,Number(percent)||85));
+  document.documentElement.style.setProperty('--expanded-width',size+'vw');
+  document.documentElement.style.setProperty('--expanded-height',size+'vh');
+  document.documentElement.style.setProperty('--expanded-opacity',String(Math.max(.35,Math.min(1,Number(opacity)||.8))));
+  document.documentElement.classList.toggle('map-expanded',!!expanded);
+  const after=tablet.getBoundingClientRect();
+  if(Math.abs(before.width-after.width)<.5&&Math.abs(before.height-after.height)<.5&&Math.abs(before.left-after.left)<.5&&Math.abs(before.top-after.top)<.5)return;
+  if(!tablet.animate||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  // Resize the real map once; animate only its composited surface between bounds.
+  animation=tablet.animate([
+   {transform:'translate('+(before.left-after.left)+'px,'+(before.top-after.top)+'px) scale('+(before.width/after.width)+','+(before.height/after.height)+')',opacity:beforeOpacity},
+   {transform:'none',opacity:getComputedStyle(tablet).opacity}
+  ],{duration:140,easing:'cubic-bezier(.2,.8,.2,1)'});
+ };
+})();
+</script></body></html>

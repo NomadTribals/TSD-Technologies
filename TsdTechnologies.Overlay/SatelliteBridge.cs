@@ -21,6 +21,12 @@ namespace TsdTechnologies.Overlay
         private readonly Uri backend;
         private readonly ConfigEntry<bool> enabled;
         private readonly ConfigEntry<int> width, height, right, top;
+        private readonly ConfigEntry<MapExpansionMode> expansionMode;
+        private readonly MapExpansionControl expansionControl=new MapExpansionControl();
+        private readonly ConfigEntry<int> expandedSize;
+        private readonly ConfigEntry<float> expandedOpacity;
+        private bool expanded;
+        private readonly bool migratePreview;
         private IWebOverlay hud;
         private string layout;
         private readonly string preferencesFile;
@@ -34,22 +40,37 @@ namespace TsdTechnologies.Overlay
         internal string Origin { get; }
         internal string MapUrl => Origin + "/satellite/";
         internal bool Enabled => enabled.Value;
+        internal void UpdateExpansion(bool available,bool held,bool pressed) {
+            SetExpanded(expansionControl.Update(expansionMode.Value,available&&enabled.Value&&Connection=="ready",held,pressed));
+        }
         internal SatelliteBridge(ConfigFile config, string preferencesFolder = null)
         {
             backend = new Uri(RequestHandler.Host.TrimEnd('/') + "/");
+            try { string existing=File.ReadAllText(config.ConfigFilePath);migratePreview=existing.Contains("[Satellite Preview]")&&!existing.Contains("[Satellite]"); } catch { }
             preferencesFile = Path.Combine(preferencesFolder ?? Path.Combine(BepInEx.Paths.ConfigPath,"TsdTechnologies","Satellite"),"Preferences.json");
             try { if(File.Exists(preferencesFile)) { string saved=File.ReadAllText(preferencesFile,Encoding.UTF8); if(saved.Length<=131072)preferences=JObject.Parse(saved).ToString(Newtonsoft.Json.Formatting.None); } } catch { }
-            enabled = config.Bind("Satellite", "MinimapEnabled", false, "Show Satellite in a small click-through tablet during raids.");
-            width = config.Bind("Satellite", "MinimapWidth", 360, new ConfigDescription("Map width in screen pixels.", new AcceptableValueRange<int>(240, 800)));
-            height = config.Bind("Satellite", "MinimapHeight", 300, new ConfigDescription("Map height in screen pixels.", new AcceptableValueRange<int>(200, 700)));
-            right = config.Bind("Satellite", "MinimapRight", 24, new ConfigDescription("Distance from right edge, in pixels.", new AcceptableValueRange<int>(0, 3000)));
-            top = config.Bind("Satellite", "MinimapTop", 130, new ConfigDescription("Distance from top edge, in pixels.", new AcceptableValueRange<int>(0, 2000)));
+            enabled = BindMap(config,"MinimapEnabled",false,new ConfigDescription("Show Satellite in a small click-through tablet during raids."));
+            config.Bind("Satellite","HoldMapKeyToExpand",true,"Legacy setting.");
+            config.Remove(new ConfigDefinition("Satellite","HoldMapKeyToExpand"));
+            expansionMode = config.Bind("Satellite", "MapExpansionMode", MapExpansionMode.Hold, "Hold: enlarge while the map key is held. Toggle: press once to enlarge, again to restore. Interactive Maps remains in the tablet.");
+            expandedSize = config.Bind("Satellite", "ExpandedMapSizePercent", 85, new ConfigDescription("Expanded map width and height as a percentage of the game view.",new AcceptableValueRange<int>(50,100)));
+            expandedOpacity = config.Bind("Satellite", "ExpandedMapOpacity", .8f, new ConfigDescription("Opacity of the enlarged map only: 0.8 is 80%, 1 is fully opaque. The small minimap stays opaque.",new AcceptableValueRange<float>(.35f,1f)));
+            expandedSize.SettingChanged+=(sender,args)=>ApplyExpandedState();
+            expandedOpacity.SettingChanged+=(sender,args)=>ApplyExpandedState();
+            width = BindMap(config,"MinimapWidth",360,new ConfigDescription("Map width in screen pixels.", new AcceptableValueRange<int>(240, 800)));
+            height = BindMap(config,"MinimapHeight",300,new ConfigDescription("Map height in screen pixels.", new AcceptableValueRange<int>(200, 700)));
+            right = BindMap(config,"MinimapRight",24,new ConfigDescription("Distance from right edge, in pixels.", new AcceptableValueRange<int>(0, 3000)));
+            top = BindMap(config,"MinimapTop",130,new ConfigDescription("Distance from top edge, in pixels.", new AcceptableValueRange<int>(0, 2000)));
             var probe = new TcpListener(IPAddress.Loopback, 0);
             probe.Start(); int port = ((IPEndPoint)probe.LocalEndpoint).Port; probe.Stop();
             Origin = "http://127.0.0.1:" + port;
             listener.Prefixes.Add(Origin + "/"); listener.Start();
             Task.Run((Func<Task>)Listen);
 
+        }
+        private ConfigEntry<T> BindMap<T>(ConfigFile config,string key,T value,ConfigDescription description) {
+            if(migratePreview){var previous=config.Bind("Satellite Preview",key,value,description);value=previous.Value;config.Remove(new ConfigDefinition("Satellite Preview",key));}
+            return config.Bind("Satellite",key,value,description);
         }
         // The real page request is the availability check. A separate preflight must
         // never prevent a working Satellite installation from loading.
@@ -68,6 +89,13 @@ namespace TsdTechnologies.Overlay
             }
         }
         internal void Toggle() { enabled.Value = !enabled.Value; }
+        internal void SetExpanded(bool value) {
+            value=value&&enabled.Value;
+            if(expanded==value)return;expanded=value;ApplyExpandedState();
+        }
+        private void ApplyExpandedState() {
+            hud?.ExecuteScript("window.tsdSetMapExpanded && window.tsdSetMapExpanded("+(expanded?"true":"false")+","+expandedSize.Value+","+expandedOpacity.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)+");");
+        }
         internal void Tick(bool inRaid, bool tabletOpen)
         {
             bool show = enabled.Value && inRaid && !tabletOpen && Connection == "ready";
@@ -81,6 +109,7 @@ namespace TsdTechnologies.Overlay
             });
             if (hud == null) return;
             var created = hud;
+            created.PageLoaded+=ApplyExpandedState;
             created.Failed += () => { created.Dispose(); if (ReferenceEquals(hud, created)) { hud = null; enabled.Value = false; } };
             using (var stream = typeof(SatelliteBridge).Assembly.GetManifestResourceStream("TsdTechnologies.Overlay.Minimap.html"))
             using (var reader = new StreamReader(stream))
@@ -132,7 +161,9 @@ namespace TsdTechnologies.Overlay
                     if (path == "/satellite/") Connection = "ready";
                     context.Response.StatusCode = (int)response.StatusCode;
                     context.Response.ContentType = response.ContentType;
-                    context.Response.Headers["Cache-Control"] = "no-store";
+                    bool tile=path.StartsWith("/satellite/map/",StringComparison.Ordinal)&&path.EndsWith(".jpg",StringComparison.OrdinalIgnoreCase);
+                    context.Response.Headers["Cache-Control"] = tile ? response.Headers["Cache-Control"] ?? "private, max-age=300" : "no-store";
+                    if(tile){foreach(string header in new[]{"ETag","Last-Modified"})if(!string.IsNullOrEmpty(response.Headers[header]))context.Response.Headers[header]=response.Headers[header];}
                     context.Response.SendChunked = true;
                     if (path == "/satellite/")
                     {
