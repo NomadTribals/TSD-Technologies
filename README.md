@@ -1,4 +1,4 @@
-# TSD Technologies 1.4.1
+# TSD Technologies 1.5.0
 
 **Your tools. One terminal.**
 
@@ -13,7 +13,7 @@ Purchase the TSD Field Terminal from Mechanic at Loyalty Level 1 for a base pric
 - Startup once per game launch by default, then immediate resume across stash and raids; optional once-per-raid mode in F12.
 - Satellite live maps inside the tablet, with an optional matching click-through minimap.
 - Saved map visibility preferences, plus Hold/Toggle minimap enlargement using M by default.
-- Configurable expanded size (85% default) and opacity (80% default), with a short visual transition.
+- Configurable expanded size (85% default) and opacity (80% default), with immediate size changes.
 
 - TSD Access for nearby keycard readers with configurable scan range and bypass duration.
 - App Browser with compatible app details and Forge links.
@@ -70,3 +70,9 @@ Thanks to **Fums** for [Satellite](https://github.com/MrFums/Satellite), CC BY-N
 Enable the minimap in Maps first. Hold M to enlarge while moving or sprinting; release to restore the exact compact size and position. In Toggle mode, press M to enlarge and press again to restore. Both views stay click-through.
 
 F12 → Satellite provides MapExpansionMode, ExpandedMapSizePercent and ExpandedMapOpacity. The small minimap remains fully opaque. F12 → Controls → MapToggleKey changes or disables the enlargement key. The normal tablet key (F9 on a fresh install, or the existing configured key such as F10) opens the interactive tablet.
+
+## Minimap navigation and clocks
+
+While enlarged, use arrow keys to pan and the mouse wheel to zoom. Returning to compact restores player follow. Normal game bindings remain active.
+
+The minimap hides for inventory/looting, raid loading, and timer/extraction panels. Independent in-game clock and raid countdown toggles are available under F12 → Satellite. Both default on; the raid countdown turns red at ten minutes remaining. MinimapPerformanceMode lowers drawing resolution without magnifying icons or reducing the enlarged viewing area. It defaults on; disable it for native-resolution drawing. Performance depends on map complexity and system load.

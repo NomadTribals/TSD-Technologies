@@ -25,7 +25,12 @@ namespace TsdTechnologies.Overlay
         private readonly MapExpansionControl expansionControl=new MapExpansionControl();
         private readonly ConfigEntry<int> expandedSize;
         private readonly ConfigEntry<float> expandedOpacity;
+        private readonly ConfigEntry<bool> expandedWheelZoom;
+        private readonly ConfigEntry<bool> fastMapRendering;
+        private readonly ConfigEntry<bool> showRaidTimer,showGameClock;
+        private string clockState;
         private bool expanded;
+        private float panCooldown;
         private readonly bool migratePreview;
         private IWebOverlay hud;
         private string layout;
@@ -55,6 +60,11 @@ namespace TsdTechnologies.Overlay
             expansionMode = config.Bind("Satellite", "MapExpansionMode", MapExpansionMode.Hold, "Hold: enlarge while the map key is held. Toggle: press once to enlarge, again to restore. Interactive Maps remains in the tablet.");
             expandedSize = config.Bind("Satellite", "ExpandedMapSizePercent", 85, new ConfigDescription("Expanded map width and height as a percentage of the game view.",new AcceptableValueRange<int>(50,100)));
             expandedOpacity = config.Bind("Satellite", "ExpandedMapOpacity", .8f, new ConfigDescription("Opacity of the enlarged map only: 0.8 is 80%, 1 is fully opaque. The small minimap stays opaque.",new AcceptableValueRange<float>(.35f,1f)));
+            expandedWheelZoom = config.Bind("Satellite","ExpandedMapMouseWheelZoom",true,"Use the mouse wheel to zoom the enlarged map. Has no effect while the map is small or hidden.");
+            fastMapRendering=config.Bind("Satellite","MinimapPerformanceMode",true,"Lower minimap drawing resolution to reduce rendering load. The enlarged map still shows a larger area with normal icon sizes. Disable for native-resolution drawing.");
+            fastMapRendering.SettingChanged+=(sender,args)=>ApplyExpandedState();
+            showRaidTimer=config.Bind("Satellite","MinimapRaidTimer",true,"Show remaining raid time in amber at the minimap's top right.");
+            showGameClock=config.Bind("Satellite","MinimapGameClock",true,"Show current in-game time at the minimap's top left.");
             expandedSize.SettingChanged+=(sender,args)=>ApplyExpandedState();
             expandedOpacity.SettingChanged+=(sender,args)=>ApplyExpandedState();
             width = BindMap(config,"MinimapWidth",360,new ConfigDescription("Map width in screen pixels.", new AcceptableValueRange<int>(240, 800)));
@@ -94,14 +104,34 @@ namespace TsdTechnologies.Overlay
             if(expanded==value)return;expanded=value;ApplyExpandedState();
         }
         private void ApplyExpandedState() {
+            hud?.ExecuteScript("window.tsdSetMapPerformance && window.tsdSetMapPerformance("+(fastMapRendering.Value?"true":"false")+");");
             hud?.ExecuteScript("window.tsdSetMapExpanded && window.tsdSetMapExpanded("+(expanded?"true":"false")+","+expandedSize.Value+","+expandedOpacity.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)+");");
         }
-        internal void Tick(bool inRaid, bool tabletOpen)
+        internal void PanExpandedMap(int horizontal,int vertical,float deltaTime) {
+            if(!expanded||hud?.IsVisible!=true||(horizontal==0&&vertical==0)){panCooldown=0;return;}
+            panCooldown-=deltaTime;if(panCooldown>0)return;panCooldown=.1f;
+            string keys=(horizontal<0?"'ArrowLeft',":horizontal>0?"'ArrowRight',":"")+(vertical<0?"'ArrowDown',":vertical>0?"'ArrowUp',":"");
+            hud.ExecuteScript("window.tsdPanMap && window.tsdPanMap(["+keys.TrimEnd(',')+"]);");
+        }
+        internal void ZoomExpandedMap(float scroll) {
+            if(!expanded||hud?.IsVisible!=true||!expandedWheelZoom.Value||float.IsNaN(scroll)||float.IsInfinity(scroll)||Math.Abs(scroll)<.001f)return;
+            float steps=Math.Max(-4f,Math.Min(4f,scroll));
+            hud.ExecuteScript("window.tsdZoomMap && window.tsdZoomMap("+steps.ToString(System.Globalization.CultureInfo.InvariantCulture)+");");
+        }
+        internal void UpdateClocks(string gameTime,string remaining) {
+            if(hud?.IsVisible!=true)return;
+            string state=(showGameClock.Value?gameTime:null)+"|"+(showRaidTimer.Value?remaining:null);
+            if(state==clockState)return;
+            clockState=state;
+            hud.ExecuteScript("window.tsdSetClocks && window.tsdSetClocks("+Newtonsoft.Json.JsonConvert.SerializeObject(showGameClock.Value?gameTime:null)+","+Newtonsoft.Json.JsonConvert.SerializeObject(showRaidTimer.Value?remaining:null)+");");
+        }
+        internal void Tick(bool inRaid, bool tabletOpen,bool gameplayVisible=true)
         {
             bool show = enabled.Value && inRaid && !tabletOpen && Connection == "ready";
             if (!show) { if (hud != null) { hud.Dispose(); hud = null; layout = null; } return; }
+            if(!gameplayVisible){if(hud?.IsVisible==true)hud.Hide();return;}
             string next = width.Value + ":" + height.Value + ":" + right.Value + ":" + top.Value;
-            if (hud != null && layout == next) return;
+            if (hud != null && layout == next) {if(!hud.IsVisible)hud.Show();return;}
             hud?.Dispose(); layout = next;
             hud = WebOverlays.Create("TSD Satellite Minimap", new OverlayOptions {
                 Transparent = true, Interactive = false, Frame = false, RememberBounds = false,
@@ -109,7 +139,8 @@ namespace TsdTechnologies.Overlay
             });
             if (hud == null) return;
             var created = hud;
-            created.PageLoaded+=ApplyExpandedState;
+            created.PageLoaded+=()=>{clockState=null;ApplyExpandedState();};
+            clockState=null;
             created.Failed += () => { created.Dispose(); if (ReferenceEquals(hud, created)) { hud = null; enabled.Value = false; } };
             using (var stream = typeof(SatelliteBridge).Assembly.GetManifestResourceStream("TsdTechnologies.Overlay.Minimap.html"))
             using (var reader = new StreamReader(stream))
@@ -172,6 +203,8 @@ namespace TsdTechnologies.Overlay
                         // Only this view is restyled; upstream files and full-page preferences stay intact.
                         string adapter = "<style>html,body{overflow:hidden!important}body>*:not(#stage){display:none!important}#stage{inset:0!important;width:100%!important;height:100%!important}</style><script>window.addEventListener('load',()=>{const f=document.getElementById('follow');if(f&&f.classList.contains('paused'))f.click();window.dispatchEvent(new Event('resize'));});</script>";
                         if (context.Request.QueryString["tsdMini"] != "1") adapter = "";
+                        else using(var resource=typeof(SatelliteBridge).Assembly.GetManifestResourceStream("TsdTechnologies.Overlay.MinimapNavigation.js"))
+                        using(var reader=new StreamReader(resource))adapter+="<script>"+reader.ReadToEnd()+"</script>";
                         string savedPreferences;
                         using(var resource=typeof(SatelliteBridge).Assembly.GetManifestResourceStream("TsdTechnologies.Overlay.SatellitePreferences.js"))
                         using(var reader=new StreamReader(resource))

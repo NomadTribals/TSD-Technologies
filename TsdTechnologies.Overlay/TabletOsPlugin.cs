@@ -2,7 +2,7 @@ using System;using System.Collections.Generic;using System.IO;using System.Linq;
 namespace TsdTechnologies.Overlay
 {
  public enum TabletBootFrequency{OncePerGameLaunch,OncePerRaid}
- [BepInPlugin("com.nomadtribals.tsdtechnologies.overlay","TSD Technologies - Field OS","1.4.1")]
+ [BepInPlugin("com.nomadtribals.tsdtechnologies.overlay","TSD Technologies - Field OS","1.5.0")]
  [BepInDependency(TabletRuntime.PluginGuid)]
  [BepInDependency("com.anvil.weboverlay","1.12.0")]
  public sealed class TabletOsPlugin:BaseUnityPlugin
@@ -10,7 +10,7 @@ namespace TsdTechnologies.Overlay
   private IWebOverlay overlay;private ConfigFile settings;private TsdUnifiedConfig migration;private TsdWallpapers wallpapers;private string appDocumentsFolder;
   private ConfigEntry<KeyCode> hotkey,mapHotkey;private ConfigEntry<TabletBootFrequency> bootFrequency;private bool launchBootCompleted;private readonly string launchBootToken="launch-"+Guid.NewGuid().ToString("N");private ConfigEntry<string> color;private ConfigEntry<bool> sounds;private ConfigEntry<float> volume,brightness;
   private bool visible,capturing;private float suppressUntil,timer;private long lastContextTicks;private long appRevision=-1;
-  private TsdAccess access;private SatelliteBridge satellite;private string lastSatelliteState;
+  private MinimapVisibility minimapVisibility;private TsdAccess access;private SatelliteBridge satellite;private string lastSatelliteState;
   private TsdAppBrowser appBrowser;private readonly System.Collections.Concurrent.ConcurrentQueue<string> browserMessages=new System.Collections.Concurrent.ConcurrentQueue<string>();
   private EFT.ClientGameWorld bootWorld;private string raidBootToken;private bool raidBootCompleted;
   private readonly string menuBootToken="menu-"+Guid.NewGuid().ToString("N");private bool menuBootCompleted;
@@ -30,7 +30,7 @@ namespace TsdTechnologies.Overlay
    color.SettingChanged+=(sender,args)=>{if(ValidColor(color.Value)){overlay?.ExecuteScript("window.tsd.onInterfaceColorLoaded("+Quote(color.Value)+");");foreach(var host in hosts.Values)host.SendTheme(color.Value);}};
    access=new TsdAccess(this,settings,json=>overlay?.Post("tsd-access-state",json,PostOptions.LatestOnly));
    appBrowser=new TsdAppBrowser(Path.Combine(BepInEx.Paths.ConfigPath,"TsdTechnologies","AppBrowser"),Resource("AppCatalogue.json"),json=>browserMessages.Enqueue(json));
-   try{satellite=new SatelliteBridge(settings);}catch(Exception ex){Logger.LogWarning("Satellite preview unavailable: "+ex.Message);}
+   try{minimapVisibility=new MinimapVisibility();satellite=new SatelliteBridge(settings);}catch(Exception ex){Logger.LogWarning("Satellite preview unavailable: "+ex.Message);}
    gameObject.AddComponent<Animation.TabletAnimationController>().Initialize(this,settings,Logger);
    Logger.LogInfo("TSD Technologies Field OS ready. Installed apps register independently.");
   }
@@ -38,8 +38,12 @@ namespace TsdTechnologies.Overlay
    access?.Tick(Time.unscaledDeltaTime,visible);
    var satState=TabletRuntime.Context;
    bool mapAvailable=satState.IsFresh&&satState.HasTablet&&satState.InRaid&&Chainloader.PluginInfos.ContainsKey("com.fums.satellite");
-   satellite?.UpdateExpansion(mapAvailable&&!visible&&!capturing&&Application.isFocused&&mapHotkey.Value!=KeyCode.None&&mapHotkey.Value!=hotkey.Value,mapHotkey.Value!=KeyCode.None&&Input.GetKey(mapHotkey.Value),mapHotkey.Value!=KeyCode.None&&Input.GetKeyDown(mapHotkey.Value));
-   satellite?.Tick(mapAvailable,visible);
+   bool gameplayVisible=minimapVisibility?.GameplayVisible()==true;
+   satellite?.UpdateExpansion(mapAvailable&&gameplayVisible&&!visible&&!capturing&&Application.isFocused&&mapHotkey.Value!=KeyCode.None&&mapHotkey.Value!=hotkey.Value,mapHotkey.Value!=KeyCode.None&&Input.GetKey(mapHotkey.Value),mapHotkey.Value!=KeyCode.None&&Input.GetKeyDown(mapHotkey.Value));
+   satellite?.Tick(mapAvailable,visible,gameplayVisible);
+   satellite?.PanExpandedMap((Input.GetKey(KeyCode.RightArrow)?1:0)-(Input.GetKey(KeyCode.LeftArrow)?1:0),(Input.GetKey(KeyCode.UpArrow)?1:0)-(Input.GetKey(KeyCode.DownArrow)?1:0),Time.unscaledDeltaTime);
+   satellite?.ZoomExpandedMap(Input.mouseScrollDelta.y);
+   if(Time.frameCount%15==0&&mapAvailable&&gameplayVisible&&minimapVisibility!=null){minimapVisibility.ReadClocks(out var gameClock,out var raidClock);satellite?.UpdateClocks(gameClock,raidClock);}
    string browserMessage;while(browserMessages.TryDequeue(out browserMessage))overlay?.Post("tsd-browser-catalogue",browserMessage,PostOptions.Retain);
    if(satellite!=null)satellite.MapVirtualKey=0;
    if(!capturing&&Time.unscaledTime>=suppressUntil&&Input.GetKeyDown(hotkey.Value))ToggleTablet();
@@ -125,7 +129,7 @@ namespace TsdTechnologies.Overlay
   private void SendSatelliteState(){overlay?.Post("tsd-satellite-state",JsonUtility.ToJson(new SatelliteState{url=satellite?.MapUrl??"",enabled=satellite?.Enabled??false,status=SatelliteStatus(),mapKey=0}),PostOptions.Retain);}
   private sealed class SatelliteState{public string url,status;public bool enabled;public int mapKey;}
   private void OnApplicationFocus(bool focused){if(!focused)satellite?.UpdateExpansion(false,false,false);}
-  private void OnDestroy(){satellite?.Dispose();appBrowser?.Dispose();foreach(var host in hosts.Values)host.NotifyVisibility(false);overlay?.Dispose();overlay=null;hosts.Clear();}
+  private void OnDestroy(){minimapVisibility?.Dispose();satellite?.Dispose();appBrowser?.Dispose();foreach(var host in hosts.Values)host.NotifyVisibility(false);overlay?.Dispose();overlay=null;hosts.Clear();}
   private sealed class AppHost:ITabletAppHost,ITabletNotificationHost{
    private readonly TabletOsPlugin owner;private readonly TabletApplication app;private bool ready,shown;private readonly Queue<Action> pending=new Queue<Action>();
    public event Action<string,string> ChannelMessage;public event Action<bool> VisibilityChanged;

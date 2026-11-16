@@ -4,7 +4,7 @@
 #tablet{container-type:inline-size;position:absolute;right:__RIGHT__px;top:__TOP__px;width:min(__WIDTH__px,calc(100vw - 16px));height:min(__HEIGHT__px,calc(100vh - __TOP__px - 8px));min-height:140px;padding:21px 16px 24px;background:linear-gradient(90deg,#080b0c,#333b3e 3%,#161c1e 6%,#101517 94%,#343c3f 97%,#080b0c);border:2px solid #050708;border-radius:3px;box-shadow:inset 0 0 0 1px #59616466,inset 0 0 0 5px #090d0f,0 4px 10px #000b;color:#a5adae;font:7px Arial,sans-serif}
 .screen{position:relative;width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden;clip-path:polygon(8px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,0 calc(100% - 8px),0 8px);background:#101619;border:1px solid #050708;box-shadow:0 0 0 3px #050708}
 .map-expanded #tablet{left:max(8px,calc((100vw - var(--expanded-width,85vw))/2));top:max(8px,calc((100vh - var(--expanded-height,85vh))/2));right:auto;width:min(var(--expanded-width,85vw),calc(100vw - 16px));height:min(var(--expanded-height,85vh),calc(100vh - 16px));opacity:var(--expanded-opacity,.8)}
-iframe{border:0;width:100%;flex:1;min-height:0;display:block}footer{flex:0 0 16px;text-align:center;padding:3px 0;background:#101619;color:#bdc5c7;font:8px Arial,sans-serif;white-space:nowrap}
+iframe{border:0;width:100%;flex:1;min-height:0;display:block}footer{position:relative;z-index:1;margin-top:auto;flex:0 0 16px;text-align:center;padding:3px 0;background:#101619;color:#bdc5c7;font:8px Arial,sans-serif;white-space:nowrap}
 .rail{position:absolute;z-index:2;border:1px solid #080b0c;border-radius:1px;box-shadow:inset 0 1px 1px #dce1db21,inset 0 -2px 4px #000e,0 0 0 1px #000b}
 .rail.side{top:25px;bottom:27px;width:7px;background:linear-gradient(90deg,#080b0c,#252c2e 18%,#555d5f 28%,#22282a 39%,#101416 48%,#303638 62%,#161b1d 78%,#080b0c)}
 .rail.left{left:4px}.rail.right{right:4px}.rail.horizontal{left:25px;right:25px;height:7px;background:linear-gradient(180deg,#080b0c,#242b2d 18%,#555d5f 29%,#22282a 41%,#101416 53%,#303638 67%,#161b1d 82%,#080b0c)}.rail.top{top:6px}.rail.bottom{bottom:6px}
@@ -17,31 +17,34 @@ iframe{border:0;width:100%;flex:1;min-height:0;display:block}footer{flex:0 0 16p
 .link{position:absolute;z-index:3;top:6px;right:35px;height:9px;display:flex;gap:3px;align-items:center;padding:1px 4px;border:1px solid #090c0d;border-radius:1px;background:linear-gradient(#080b0c,#1a2022,#090c0d);font:700 4px Arial,sans-serif;letter-spacing:.6px;color:#82918a}.led{width:3px;height:3px;border-radius:50%;background:#6da775;box-shadow:0 0 3px #6da775b3}.wifi{width:8px;height:7px;stroke:#75a97c;fill:none;stroke-width:1.5}
 .controls{position:absolute;z-index:3;bottom:4px;left:38px;right:38px;display:flex;align-items:center;justify-content:space-between;gap:4px;height:11px;font:700 4px Arial;letter-spacing:.4px;color:#929b9e}.bank{display:flex;align-items:center;gap:3px;padding:2px 4px;border:1px solid #070a0b;background:linear-gradient(#343d40,#111719);box-shadow:inset 0 1px 0 #fff2}.key{padding:1px 2px;background:linear-gradient(#5b6568,#252d30);border:1px solid #0b1012;color:#aeb8ba;border-radius:1px}.active{color:#e0a43b}.power{width:10px;height:10px;border:1px solid #b78a38;border-radius:50%;display:flex;align-items:center;justify-content:center;font:8px Arial;color:#d4a94f;box-shadow:inset 0 1px 1px #fff3;background:#20282b}
 @container(max-width:280px){.link{right:30px;font-size:3.5px;gap:2px}.plate{left:40%;font-size:4px;letter-spacing:.7px;padding:4px 8px}.controls{left:32px;right:32px}.controls>.bank:nth-child(2){display:none}}
+.clock-strip{position:absolute;z-index:5;top:32px;left:26px;right:26px;display:flex;justify-content:space-between;gap:8px;pointer-events:none}.clock-readout{padding:4px 7px;border:1px solid #68777a70;border-radius:3px;background:#0b1115ed;box-shadow:0 2px 5px #0008;color:#dbe7eb;font:600 13px Consolas,monospace;white-space:nowrap}.clock-readout small{display:block;font:600 7px Arial,sans-serif;letter-spacing:1px;margin-bottom:2px;color:#9baeb5}.clock-readout.raid{margin-left:auto;color:#f2bd64;border-color:#ad813d80}.clock-readout.raid small{color:#c79c59}.clock-readout.raid.warning{color:#ff6868;border-color:#c74646b3}.clock-readout.raid.warning small{color:#f08080}.clock-readout[hidden]{display:none}
 </style></head><body>
 <section id='tablet' aria-label='TSD tablet minimap'>
  <span class='rail side left'></span><span class='rail side right'></span><span class='rail horizontal top'></span><span class='rail horizontal bottom'></span>
  <div class='guard tl'><i class='screw'></i></div><div class='guard tr'><i class='screw'></i></div><div class='guard bl'><i class='screw'></i></div><div class='guard br'><i class='screw'></i></div>
  <div class='plate'>TSD // FIELD TERMINAL</div><div class='link'><i class='led'></i>TSD LINK<svg class='wifi' viewBox='0 0 20 18'><path d='M2 6 Q10 -1 18 6 M5 9 Q10 4 15 9 M8 12 Q10 10 12 12'/><circle cx='10' cy='15' r='1'/></svg></div>
+ <div class='clock-strip'><div id='game-clock' class='clock-readout' hidden><small>LOCAL TIME</small><span></span></div><div id='raid-clock' class='clock-readout raid' hidden><small>RAID LEFT</small><span></span></div></div>
  <div class='screen'><iframe title='Satellite minimap' src='__URL__?tsdMini=1'></iframe><footer>Satellite by Fums · CC BY-NC 4.0</footer></div>
  <div class='controls' aria-hidden='true'><span class='bank'>MODE <i class='key active'>MAP</i><i class='key'>LOG</i></span><span class='bank'>TSD // MAP LINK</span><span class='power'>⏻</span></div>
 </section><script>
 (()=>{
- const tablet=document.getElementById('tablet');let animation;
+ const tablet=document.getElementById('tablet'),frame=tablet.querySelector('iframe');let performanceMode=true;
+ const command=message=>{try{frame.contentWindow?.postMessage(message,new URL(frame.src).origin);}catch{}};
+ window.tsdSetMapPerformance=value=>{performanceMode=!!value;command({tsdMiniControl:'quality',reduced:performanceMode});};
+ frame.addEventListener('load',()=>command({tsdMiniControl:'quality',reduced:performanceMode}));
+ window.tsdSetClocks=(local,raid)=>{[['game-clock',local],['raid-clock',raid]].forEach(([id,value])=>{const el=document.getElementById(id);el.hidden=!value;el.querySelector('span').textContent=value||'';if(id==='raid-clock'){const parts=String(value||'').split(':');const valid=parts.length>=2&&parts.length<=3&&parts.every(part=>/^\d+$/.test(part));const seconds=valid?parts.reduce((total,part)=>total*60+Number(part),0):Infinity;el.classList.toggle('warning',seconds<=600);}});};
+ window.tsdPanMap=keys=>{if(document.documentElement.classList.contains('map-expanded'))command({tsdMiniControl:'pan',keys});};
+ window.tsdZoomMap=delta=>{if(document.documentElement.classList.contains('map-expanded')&&Number.isFinite(delta))command({tsdMiniControl:'zoom',delta});};
  window.tsdSetMapExpanded=(expanded,percent,opacity=.8)=>{
-  const before=tablet.getBoundingClientRect(),beforeOpacity=getComputedStyle(tablet).opacity;animation?.cancel();
+
   const size=Math.max(50,Math.min(100,Number(percent)||85));
   document.documentElement.style.setProperty('--expanded-width',size+'vw');
   document.documentElement.style.setProperty('--expanded-height',size+'vh');
   document.documentElement.style.setProperty('--expanded-opacity',String(Math.max(.35,Math.min(1,Number(opacity)||.8))));
   document.documentElement.classList.toggle('map-expanded',!!expanded);
-  const after=tablet.getBoundingClientRect();
-  if(Math.abs(before.width-after.width)<.5&&Math.abs(before.height-after.height)<.5&&Math.abs(before.left-after.left)<.5&&Math.abs(before.top-after.top)<.5)return;
-  if(!tablet.animate||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-  // Resize the real map once; animate only its composited surface between bounds.
-  animation=tablet.animate([
-   {transform:'translate('+(before.left-after.left)+'px,'+(before.top-after.top)+'px) scale('+(before.width/after.width)+','+(before.height/after.height)+')',opacity:beforeOpacity},
-   {transform:'none',opacity:getComputedStyle(tablet).opacity}
-  ],{duration:140,easing:'cubic-bezier(.2,.8,.2,1)'});
+  if(!expanded)command({tsdMiniControl:'follow'});
+
+
  };
 })();
 </script></body></html>

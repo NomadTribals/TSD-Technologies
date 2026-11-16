@@ -29,7 +29,7 @@ Purchase the **TSD Field Terminal from Mechanic at Loyalty Level 1**, with a bas
 - Adjustable brightness, volume, interface sounds and accent colour.
 - Built-in **TSD Signal** and **TSD Horizon** wallpapers.
 - Support for custom PNG/JPG wallpapers, with previews and Fill/Fit options.
-- Settings and device information displaying **Field OS 1.4.1**.
+- Settings and device information displaying **Field OS 1.5.0**.
 - **Unread badges** on Home-screen icons for compatible apps.
 - App visibility tracking that distinguishes a visible app from a remembered page while the tablet is closed or on Home.
 
@@ -76,7 +76,7 @@ Both apps are separate downloads. Neither is required to use the tablet’s buil
 
 Without TrashTalk, Messenger remains a **read-only conversation viewer**. TrashTalk supplies the replies using its own provider and delay settings. New contact portraits are generated outside raids to avoid interrupting combat; a silhouette appears until a portrait is available.
 
-**Messenger 1.0.0 requires Technologies 1.3.0 or newer and works with this 1.4.1 release.** It is not bundled with the tablet.
+**Messenger 1.0.0 requires Technologies 1.3.0 or newer and works with this 1.5.0 release.** It is not bundled with the tablet.
 
 [Get TSD Messenger on the Forge](https://sp-mod.com/addon/196/tsd-messenger)
 
@@ -90,7 +90,7 @@ The Maps app now connects to [Satellite by Fums](https://sp-mod.com/mod/3373/sat
 
 #### Maps inside the tablet
 
-![TSD Technologies — Satellite inside the Maps app](https://raw.githubusercontent.com/NomadTribals/TSD-Technologies/v1.4.1/images/TSD-Maps-Preview.png)
+![TSD Technologies — Satellite inside the Maps app](https://raw.githubusercontent.com/NomadTribals/TSD-Technologies/v1.5.0/images/TSD-Maps-Preview.png)
 
 - Drag to pan and scroll to zoom using Satellite’s map controls.
 - Use Satellite’s menu to choose the information and markers to show or hide.
@@ -98,24 +98,33 @@ The Maps app now connects to [Satellite by Fums](https://sp-mod.com/mod/3373/sat
 - **Hold M** by default to enlarge the minimap while continuing to move or sprint; release it to restore the usual size.
 - Prefer a toggle? Select **Toggle** under **F12 → Satellite → MapExpansionMode**, then press M once to enlarge and again to restore.
 - The enlarged view defaults to **85% of the screen** and **80% opacity**, with both adjustable in F12. The small minimap stays fully opaque.
-- A short visual transition expands and collapses the existing map without reloading it.
+- Enlargement and restoration happen without an added visual transition delay.
 - Rebind or disable the shortcut under **F12 → TSD Technologies → Controls → MapToggleKey**.
 
 #### A minimap that belongs to the tablet
 
-![TSD Technologies — tablet-framed minimap during gameplay](https://raw.githubusercontent.com/NomadTribals/TSD-Technologies/v1.4.1/images/TSD-Minimap-Preview.png)
+![TSD Technologies — tablet-framed minimap during gameplay](https://raw.githubusercontent.com/NomadTribals/TSD-Technologies/v1.5.0/images/TSD-Minimap-Preview.png)
 
 Enable **Minimap** from the Maps toolbar, then close the main tablet. During a raid, the compact map follows the player inside a matching graphite TSD casing.
 
 - Click-through display keeps movement, aiming and normal gameplay available.
 - Inherits the visibility choices set in the full tablet map.
 - Size and screen position are adjustable under **F12 → TSD Technologies → Satellite**.
-- Automatically hides while the main tablet is open and outside raids.
+- Automatically hides while the main tablet is open, outside active gameplay, during inventory/looting and while the raid timer or extraction list is displayed.
 - Hold/Toggle enlargement works during normal gameplay without taking mouse or keyboard focus.
 - Adjust **ExpandedMapSizePercent** and **ExpandedMapOpacity** under **F12 → Satellite**. Defaults are 85% size and 0.8 opacity.
 - Map-image caching reduces repeat transfers when reopening the map; live raid information remains uncached.
 
-The minimap and its enlarged view are click-through displays, not interactive control panels. Make map changes through the full Maps app. Its follow view and compact zoom are kept separate from the full map’s navigation.
+The minimap and its enlarged view stay click-through. Pan with the arrow keys and zoom with the mouse wheel while enlarged. Normal game bindings remain active. Use the full Maps app for Satellite menus and settings. Its follow view and compact zoom are kept separate from the full map’s navigation.
+
+#### Navigation, clocks and performance
+
+- While enlarged, use the **arrow keys** to pan and the **mouse wheel** to zoom. Returning to the compact view restores player follow.
+- Toggle **ExpandedMapMouseWheelZoom** in F12 to enable or disable wheel zoom. Normal game bindings remain active.
+- **MinimapGameClock** shows current in-game time at the top left in cool white.
+- **MinimapRaidTimer** shows remaining raid time at the top right in amber, turning red at **10:00 or less**.
+- Both clocks start enabled and can be toggled independently under **F12 → TSD Technologies → Satellite**.
+- **MinimapPerformanceMode** starts enabled. It lowers drawing resolution while preserving the larger viewing area and normal-sized icons. Disable it for sharper native-resolution drawing. Performance varies with map complexity and system load.
 
 #### Required for the Maps feature
 
@@ -165,7 +174,7 @@ Animation and handling-sound controls are available in the main **TSD Technologi
 
 1. Close the game and SPT server.
 2. Install Anvil WebOverlay according to its instructions.
-3. Download **TSD Technologies 1.4.1**.
+3. Download **TSD Technologies 1.5.0**.
 4. Extract the ZIP into the main SPT game folder beside `EscapeFromTarkov.exe`, merging its `BepInEx` and `SPT_Runtime` folders.
 5. Start the server, then launch the game.
 
@@ -175,7 +184,7 @@ Animation and handling-sound controls are available in the main **TSD Technologi
 
 1. Close the game and server.
 2. Back up the player profile and tablet settings.
-3. Extract the **1.4.1** ZIP into the main SPT game folder.
+3. Extract the **1.5.0** ZIP into the main SPT game folder.
 4. Merge the included folders and replace existing Technologies program files.
 5. Keep existing configuration, custom wallpapers and separately installed apps.
 
@@ -185,7 +194,7 @@ Animation and handling-sound controls are available in the main **TSD Technologi
 
 **TSD Messenger 1.0.0 requires Technologies 1.3.0** and is installed separately.
 
-[Download Technologies 1.4.1](https://github.com/NomadTribals/TSD-Technologies/releases/download/v1.4.1/TsdTechnologies-1.4.1.zip) · [Full upgrade guide](https://github.com/NomadTribals/TSD-Technologies/blob/v1.4.1/docs/Upgrade-TsdTechnologies.md)
+[Download Technologies 1.5.0](https://github.com/NomadTribals/TSD-Technologies/releases/download/v1.5.0/TsdTechnologies-1.5.0.zip) · [Full upgrade guide](https://github.com/NomadTribals/TSD-Technologies/blob/v1.5.0/docs/Upgrade-TsdTechnologies.md)
 
 ### For App Developers
 
