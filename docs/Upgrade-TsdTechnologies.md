@@ -1,9 +1,9 @@
-# Installing or updating TSD Technologies 1.5.0
+# Installing or updating TSD Technologies 1.6.0
 
 1. Close the game and SPT server.
 2. Back up the player profile and tablet settings.
 3. Install Anvil WebOverlay 1.12.0 or newer if needed.
-4. Extract TsdTechnologies-1.5.0.zip into the main SPT folder beside EscapeFromTarkov.exe. Merge BepInEx and SPT_Runtime and replace Technologies program files.
+4. Extract TsdTechnologies-1.6.0.zip into the main SPT folder beside EscapeFromTarkov.exe. Merge BepInEx and SPT_Runtime and replace Technologies program files.
 5. Keep existing configuration, wallpapers, map preferences and separately installed apps. No settings reset is required.
 6. For Maps, install Satellite separately following its instructions, including the map pack, then start the server and game. Tested with Satellite 1.0.1.
 
@@ -35,3 +35,7 @@ F12 → Satellite: MapExpansionMode (Hold or Toggle), ExpandedMapSizePercent (85
 - Lower-resolution performance mode preserves the enlarged viewing area and normal icon sizes. Disable it for sharper native-resolution drawing.
 
 All new options are under F12 → TSD Technologies → Satellite. Clock toggles and performance mode default on. Normal game bindings remain active while panning or using the mouse wheel. Existing configuration and apps are preserved.
+
+## Home screen layout
+
+Hold the left mouse button on an app icon briefly, drag it to a new position and release. Quick clicks still open apps. Order is stored in BepInEx/config/TsdTechnologies/AppLayout.json; keep this file when updating.

@@ -1,3 +1,11 @@
+# TSD Technologies 1.6.0
+
+- Hold and drag Home screen app icons to arrange them.
+- App order is saved between game sessions. Existing apps retain their positions when an app is temporarily removed and reinstalled.
+- Settings displays the matching Field OS version.
+
+Existing settings, map preferences and separately installed apps are preserved.
+
 # TSD Technologies 1.5.0 — Minimap Navigation & Raid Clocks
 
 - Pan the enlarged minimap with the arrow keys and zoom with the mouse wheel. Mouse-wheel zoom can be disabled in F12. Returning to the compact view restores player follow.

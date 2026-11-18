@@ -1,78 +1,25 @@
-# TSD Technologies 1.5.0
+# TSD Technologies 1.6.0
 
-**Your tools. One terminal.**
+Your tools. One terminal.
 
-TSD has expanded beyond logistics. Its technology division introduces **TSD Technologies**, the independent tablet and Field OS that power a growing app platform for SPT.
+Personal Field Terminal and expandable Field OS for SPT 4.1.6. Purchase the tablet from Mechanic and install compatible apps separately.
 
-Purchase the TSD Field Terminal from Mechanic at Loyalty Level 1 for a base price of 75,000 roubles. Open your personal workspace, adjust the device to your preferences, and run compatible apps inside the same rugged tablet.
+## New in 1.6.0
 
-## Features
+- Hold and drag Home screen app icons to arrange them.
+- App order is saved between game sessions. Existing apps retain their positions when an app is temporarily removed and reinstalled.
+- Settings displays the matching Field OS version.
 
-- Home-screen unread badges and accurate visibility reporting for compatible optional apps such as TSD Messenger.
+Existing settings, map preferences and separately installed apps are preserved.
 
-- Startup once per game launch by default, then immediate resume across stash and raids; optional once-per-raid mode in F12.
-- Satellite live maps inside the tablet, with an optional matching click-through minimap.
-- Saved map visibility preferences, plus Hold/Toggle minimap enlargement using M by default.
-- Configurable expanded size (85% default) and opacity (80% default), with immediate size changes.
+## Requirements and use
 
-- TSD Access for nearby keycard readers with configurable scan range and bypass duration.
-- App Browser with compatible app details and Forge links.
+SPT 4.1.6 and Anvil WebOverlay 1.12.0 or newer. Satellite 1.0.1 is optional, installed separately for Maps. Messenger 1.0.0 and Logistics 3.1.0 remain separate compatible apps. Fika compatibility is unverified.
 
-- Physical rectangular tablet with slim corner plates, native raise/put-away animation, handling sounds and working indicators.
-- Corrected dropped-terminal collision so it can be recovered from the ground.
-- Compact app launcher with distinct icons and a permanent HOME button.
-- Personalised welcome and registered operator information.
-- Actual in-game time during raids and local computer time outside raids.
-- Movable, resizable tablet with saved window placement.
-- Configurable key, sound, volume, brightness and interface accent.
-- TSD Signal and TSD Horizon wallpapers, plus your own PNG/JPG files with preview, Fill/Fit and saved selection.
-- Separate connection and processing indicators.
-- An app registration interface for authors building compatible Field OS apps.
+Extract into the main SPT game folder, merging BepInEx and SPT_Runtime. Keep existing configurations, wallpapers and separately installed apps when updating. See Upgrade-TsdTechnologies.md.
 
-Tactical Supply Drops is the first Logistics app. **Logistics is installed separately; it is not required to use the tablet's Home and Settings.**
+Fresh installations default to F9 for the tablet; existing key settings are preserved. M enlarges the minimap using the selected Hold or Toggle mode. Open interactive Maps through the tablet. Configure controls, boot frequency and Satellite minimap placement in F12. Change visible map content through Satelliteâ€™s own menu inside Maps.
 
-## Requirements
+## Credits
 
-SPT 4.1.6 and Anvil WebOverlay 1.12.0 or newer. Satellite is optional and installed separately for Maps and the minimap; tested with Satellite 1.0.1. Install compatible apps separately. Fika compatibility remains unverified.
-
-## Installation
-
-Use the accompanying upgrade guide. Close the game and server, remove the old Technologies plugin and server-mod folders, then extract this ZIP. Keep your configuration and wallpapers. Logistics is unchanged and stays installed. Extract into the SPT game root. A fresh setup uses F9; the tablet must be carried to access it in raid.
-
-## Current animation behaviour
-
-Use your configured tablet key (F9 on a fresh installation). Stop sprinting and leave aiming or other hands interactions before opening it. The interactive overlay stops movement while open. The overlay remains a separate movable window. You can resize and position it over the held tablet screen; it does not track the physical tablet's movement. Animation can be disabled in the unified F12 configuration.
-
-## Future development
-
-Maps uses Satellite by Fums. Open interactive Maps from the tablet Home screen. M now controls minimap enlargement only: hold/release by default, or choose Toggle in F12 → Satellite → MapExpansionMode. The minimap follows the player during raids while the tablet is closed; configure size and placement under F12 → Satellite. Change visible markers in Satellite’s menu inside Maps. These preferences are saved between game launches.
-
-[Get Satellite](https://sp-mod.com/mod/3373/satellite) · [Get TSD Messenger](https://sp-mod.com/addon/196/tsd-messenger)
-
-![Tablet Maps](images/TSD-Maps-Preview.png)
-
-![Tablet minimap](images/TSD-Minimap-Preview.png)
-
-A future goal is to integrate the live interface directly into the physical tablet screen, following its movement. Feasibility and performance still need investigation; no release date is promised.
-
-## Special thanks
-
-TSD Technologies is built on **Anvil WebOverlay** by **maschine**. Thank you for the framework, your direct support, and the improvements made with this project in mind. This tablet would not have been possible without that foundation.
-
-https://github.com/maschine34675/WebOverlay
-
-
-Thanks to **Fums** for [Satellite](https://github.com/MrFums/Satellite), CC BY-NC 4.0. The bridge adapts the viewer layout; Satellite code and map scans are not bundled.
-
-
-## Expanded map controls
-
-Enable the minimap in Maps first. Hold M to enlarge while moving or sprinting; release to restore the exact compact size and position. In Toggle mode, press M to enlarge and press again to restore. Both views stay click-through.
-
-F12 → Satellite provides MapExpansionMode, ExpandedMapSizePercent and ExpandedMapOpacity. The small minimap remains fully opaque. F12 → Controls → MapToggleKey changes or disables the enlargement key. The normal tablet key (F9 on a fresh install, or the existing configured key such as F10) opens the interactive tablet.
-
-## Minimap navigation and clocks
-
-While enlarged, use arrow keys to pan and the mouse wheel to zoom. Returning to compact restores player follow. Normal game bindings remain active.
-
-The minimap hides for inventory/looting, raid loading, and timer/extraction panels. Independent in-game clock and raid countdown toggles are available under F12 → Satellite. Both default on; the raid countdown turns red at ten minutes remaining. MinimapPerformanceMode lowers drawing resolution without magnifying icons or reducing the enlarged viewing area. It defaults on; disable it for native-resolution drawing. Performance depends on map complexity and system load.
+Thanks to maschine for Anvil WebOverlay and to Fums for Satellite. Satellite by Fums, CC BY-NC 4.0: https://sp-mod.com/mod/3373/satellite and https://github.com/MrFums/Satellite . The bridge adapts the viewer for the tablet. Satelliteâ€™s code and maps are not bundled.

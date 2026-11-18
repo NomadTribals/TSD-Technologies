@@ -30,7 +30,7 @@ public record ModMetadata : IModMetadata
     public List<string>? Contributors { get; init; }
 
     public SemanticVersioning.Version Version { get; init; } =
-        new("1.5.0");
+        new("1.6.0");
 
     public SemanticVersioning.Range SptVersion { get; init; } =
         new("4.1.6");

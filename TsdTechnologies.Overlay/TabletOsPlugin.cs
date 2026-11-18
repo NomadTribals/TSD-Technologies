@@ -2,12 +2,12 @@ using System;using System.Collections.Generic;using System.IO;using System.Linq;
 namespace TsdTechnologies.Overlay
 {
  public enum TabletBootFrequency{OncePerGameLaunch,OncePerRaid}
- [BepInPlugin("com.nomadtribals.tsdtechnologies.overlay","TSD Technologies - Field OS","1.5.0")]
+ [BepInPlugin("com.nomadtribals.tsdtechnologies.overlay","TSD Technologies - Field OS","1.6.0")]
  [BepInDependency(TabletRuntime.PluginGuid)]
  [BepInDependency("com.anvil.weboverlay","1.12.0")]
  public sealed class TabletOsPlugin:BaseUnityPlugin
  {
-  private IWebOverlay overlay;private ConfigFile settings;private TsdUnifiedConfig migration;private TsdWallpapers wallpapers;private string appDocumentsFolder;
+  private TsdAppLayout appLayout;private IWebOverlay overlay;private ConfigFile settings;private TsdUnifiedConfig migration;private TsdWallpapers wallpapers;private string appDocumentsFolder;
   private ConfigEntry<KeyCode> hotkey,mapHotkey;private ConfigEntry<TabletBootFrequency> bootFrequency;private bool launchBootCompleted;private readonly string launchBootToken="launch-"+Guid.NewGuid().ToString("N");private ConfigEntry<string> color;private ConfigEntry<bool> sounds;private ConfigEntry<float> volume,brightness;
   private bool visible,capturing;private float suppressUntil,timer;private long lastContextTicks;private long appRevision=-1;
   private MinimapVisibility minimapVisibility;private TsdAccess access;private SatelliteBridge satellite;private string lastSatelliteState;
@@ -25,6 +25,7 @@ namespace TsdTechnologies.Overlay
    color=migration.Bind("Appearance","InterfaceColor","#e0a43b","Interface accent color (#RRGGBB).");
    sounds=migration.Bind("Tablet Audio","SoundsEnabled",true,"Enable device sounds.");volume=migration.Bind("Tablet Audio","Volume",.5f,"Device sound volume, 0 to 1.");brightness=migration.Bind("Appearance","Brightness",.55f,"Screen brightness, 0.55 to 1.25.");
    MigrateFiles("Wallpapers");
+   appLayout=new TsdAppLayout(Path.Combine(BepInEx.Paths.ConfigPath,"TsdTechnologies"));
    appDocumentsFolder=Path.Combine(BepInEx.Paths.ConfigPath,"TsdTechnologies","AppDocuments");Directory.CreateDirectory(appDocumentsFolder);
    wallpapers=new TsdWallpapers(migration.Bind("Appearance","Wallpaper","builtin:signal","Home wallpaper."),migration.Bind("Appearance","WallpaperFit","fill","Custom image sizing: fill or fit."),json=>overlay?.Post("tsd-wallpapers",json,PostOptions.Retain));
    color.SettingChanged+=(sender,args)=>{if(ValidColor(color.Value)){overlay?.ExecuteScript("window.tsd.onInterfaceColorLoaded("+Quote(color.Value)+");");foreach(var host in hosts.Values)host.SendTheme(color.Value);}};
@@ -66,9 +67,10 @@ namespace TsdTechnologies.Overlay
    created.ChannelMessage+=HandleChannel;
    created.ChannelsFailed+=()=>Logger.LogError("Field OS communication failed.");
    created.Failed+=()=>{Logger.LogError("Field OS window failed: "+created.FailureMessage);foreach(var h in hosts.Values)h.NotifyVisibility(false);hosts.Clear();created.Dispose();if(ReferenceEquals(overlay,created))overlay=null;visible=false;appRevision=-1;};
-   created.LoadHtml(Resource("Tablet.html").Replace("/*TSD_APP_BROWSER_SCRIPT*/",Resource("AppBrowser.js")).Replace("/*TSD_ACCESS_SCRIPT*/",Resource("Access.js")).Replace("/*TSD_SATELLITE_SCRIPT*/",Resource("Satellite.js")));
+   created.LoadHtml(Resource("Tablet.html").Replace("/*TSD_APP_BROWSER_SCRIPT*/",Resource("AppBrowser.js")).Replace("/*TSD_ACCESS_SCRIPT*/",Resource("Access.js")).Replace("/*TSD_SATELLITE_SCRIPT*/",Resource("Satellite.js")).Replace("/*TSD_HOME_LAYOUT_SCRIPT*/",Resource("HomeLayout.js")));
   }
   private void HandleChannel(string channel,string payload){
+   if(channel=="tsd-app-order"){if(visible)try{appLayout.Save(payload);SendPreferences();}catch(Exception ex){Logger.LogWarning("App layout could not be saved: "+ex.GetType().Name);overlay?.ExecuteScript("window.tsdHomeLayout?.saved(false);");}return;}
    Logger.LogDebug("Field OS channel: "+channel);
    if(channel=="tsd-satellite-preferences"){if(satellite?.SavePreferences(payload)!=true)Logger.LogWarning("Satellite preferences could not be saved.");return;}
    if(channel=="tsd-map-shortcut")return;
@@ -110,7 +112,7 @@ namespace TsdTechnologies.Overlay
    return world==null?menuBootToken:raidBootToken;
   }
   private void SendContext(){var state=TabletRuntime.Context;string token=GetRaidBootToken();overlay?.ExecuteScript("window.tsd.onTabletAccessReceived("+JsonUtility.ToJson(new ContextMessage{hasAccess=state.IsFresh&&state.HasTablet,inRaid=state.InRaid,nickname=state.Nickname,raidTime=state.RaidTime,raidBootToken=token,raidBootCompleted=token==launchBootToken?launchBootCompleted:token==menuBootToken?menuBootCompleted:raidBootCompleted})+");");}
-  private void SendPreferences(){overlay?.Post("tsd-preferences",JsonUtility.ToJson(new DevicePreferences{sounds=sounds.Value,volume=Finite(volume.Value,.5f,0,1),brightness=Finite(brightness.Value,.55f,.55f,1.25f)}),PostOptions.Retain);}
+  private void SendPreferences(){overlay?.Post("tsd-preferences",JsonUtility.ToJson(new DevicePreferences{appOrder=appLayout.Order,sounds=sounds.Value,volume=Finite(volume.Value,.5f,0,1),brightness=Finite(brightness.Value,.55f,.55f,1.25f)}),PostOptions.Retain);}
   private void SavePreference(string payload){try{if(payload==null||payload.Length>4096)return;var m=JsonUtility.FromJson<Preference>(payload);if(m==null)return;float value;switch(m.key){case "tsd-tablet-sounds":if(m.value=="true"||m.value=="false")sounds.Value=m.value=="true";break;case "tsd-tablet-volume":if(float.TryParse(m.value,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out value))volume.Value=Finite(value,.5f,0,1);break;case "tsd-tablet-brightness":if(float.TryParse(m.value,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out value))brightness.Value=Finite(value,.55f,.55f,1.25f);break;}}catch(Exception ex){Logger.LogWarning("Device preference could not be saved: "+ex.Message);}}
   private static float Finite(float value,float fallback,float min,float max){return float.IsNaN(value)||float.IsInfinity(value)?fallback:Mathf.Clamp(value,min,max);}
   private static bool ValidColor(string value){return value!=null&&System.Text.RegularExpressions.Regex.IsMatch(value,"^#[0-9a-fA-F]{6}$");}
@@ -153,7 +155,7 @@ namespace TsdTechnologies.Overlay
   [Serializable]private class AppInfo{public string id,name,iconSvg,url,logPage;public string[] channels;}
   [Serializable]private class BadgeMessage{public string id;public int count;}
   [Serializable]private class ContextMessage{public bool hasAccess,inRaid,raidBootCompleted;public string nickname,raidTime,raidBootToken;}
-  [Serializable]private class DevicePreferences{public bool sounds;public float volume,brightness;}
+  [Serializable]private class DevicePreferences{public string[] appOrder;public bool sounds;public float volume,brightness;}
   [Serializable]private class Preference{public string key=null,value=null;}
  }
 }

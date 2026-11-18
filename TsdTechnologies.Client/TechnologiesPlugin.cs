@@ -8,7 +8,7 @@ using TsdTechnologies.Api;
 using UnityEngine;
 namespace TsdTechnologies.Client
 {
-    [BepInPlugin(TabletRuntime.PluginGuid, "TSD Technologies", "1.5.0")]
+    [BepInPlugin(TabletRuntime.PluginGuid, "TSD Technologies", "1.6.0")]
     public sealed class TechnologiesPlugin : BaseUnityPlugin
     {
         private float timer;
